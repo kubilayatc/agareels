@@ -92,7 +92,7 @@
             align-items: center;
             gap: 2px;
             cursor: pointer;
-            width: 25%;
+            flex: 1;
         }
         .nav-item span { font-size: 0.65rem; }
         .nav-item.active { color: #fff; }
@@ -388,7 +388,7 @@
                 <div class="brand"><i class="fa-solid fa-play-circle"></i> AgaReels</div>
                 <div class="header-btn-group">
                     <button class="btn-icon-top" id="muteToggleBtn" onclick="toggleMuteAll()"><i class="fa-solid fa-volume-xmark" style="color:#ff2851;"></i></button>
-                    <button class="btn-icon-top" onclick="openAdminPanel()"><i class="fa-solid fa-shield-halved"></i></button>
+                    <button class="btn-icon-top" id="adminPanelTopBtn" style="display:none;" onclick="openAdminPanel()"><i class="fa-solid fa-shield-halved"></i></button>
                 </div>
             </div>
             <div class="reels-feed" id="reelsFeed"></div>
@@ -425,7 +425,8 @@
             <i class="fa-solid fa-magnifying-glass"></i>
             <span>Arama</span>
         </button>
-        <button class="nav-item" onclick="openUploadModal()">
+        <!-- SADECE ADMİN DE GÖRÜNECEK YÜKLEME BUTONU -->
+        <button class="nav-item" id="navUploadBtn" style="display:none;" onclick="openUploadModal()">
             <div class="nav-item-plus"><i class="fa-solid fa-plus"></i></div>
         </button>
         <button class="nav-item" id="navProfileBtn" onclick="switchPage('pageProfile', this)">
@@ -518,7 +519,7 @@
 </div>
 
 <script>
-    // 1. Firebase Başlatma
+    // Firebase Bağlantısı
     const firebaseConfig = {
         apiKey: "AIzaSyDpc2ON0Gs11VCaW649v49zEkwn_njVh-I",
         authDomain: "agareels-a5264.firebaseapp.com",
@@ -566,6 +567,7 @@
                     localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
                 }
             }
+            updateAdminUI();
             renderProfilePage();
             renderFeed();
         });
@@ -577,7 +579,24 @@
             renderSearch();
             setupScrollObserver();
         });
+
+        updateAdminUI();
     };
+
+    function updateAdminUI() {
+        const uploadBtn = document.getElementById('navUploadBtn');
+        const adminShieldBtn = document.getElementById('adminPanelTopBtn');
+        
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'AdminAga');
+        
+        if (isAdmin) {
+            if (uploadBtn) uploadBtn.style.display = 'flex';
+            if (adminShieldBtn) adminShieldBtn.style.display = 'flex';
+        } else {
+            if (uploadBtn) uploadBtn.style.display = 'none';
+            if (adminShieldBtn) adminShieldBtn.style.display = 'none';
+        }
+    }
 
     function syncUsersToFirebase() {
         const usersObj = {};
@@ -839,14 +858,15 @@
     }
 
     function openUploadModal() {
-        if (!currentUser) return alert("Video yüklemek için önce profil sayfasından giriş yapmalısın!");
-        if (currentUser.isBanned) return alert("🚫 Banlandığınız için video yükleyemezsiniz!");
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
+            return alert("🚫 Video yükleme yetkisi sadece Admin hesabına aittir!");
+        }
         document.getElementById('uploadModal').style.display = 'flex';
     }
 
     function openAdminPanel() {
         if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
-            return alert("Bu alana erişim sadece Admin hesabına özeldir! Profil sayfasından Admin hesabıyla giriş yapın.");
+            return alert("Bu alana erişim sadece Admin hesabına özeldir!");
         }
         renderAdminVideoList();
         renderAdminUserList();
@@ -1127,6 +1147,7 @@
         }
 
         localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+        updateAdminUI();
         renderProfilePage();
         renderFeed();
     }
@@ -1152,6 +1173,7 @@
     function logout() {
         currentUser = null;
         localStorage.removeItem('agareels_current_user');
+        updateAdminUI();
         renderProfilePage();
         renderFeed();
     }
@@ -1308,7 +1330,9 @@
     }
 
     function uploadVideo() {
-        if (!currentUser) return alert('Giriş yapmalısınız!');
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
+            return alert('🚫 Sadece Admin video yükleyebilir!');
+        }
 
         const urlInput = document.getElementById('videoUrlInput');
         const descInput = document.getElementById('videoDescInput');
