@@ -30,7 +30,8 @@
             background-color: #000;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
         }
         @media (min-width: 450px) {
             .app-container {
@@ -39,6 +40,65 @@
                 border: 1px solid #333;
             }
         }
+        
+        .content-area {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        .page {
+            display: none;
+            height: 100%;
+            width: 100%;
+            overflow-y: auto;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #000;
+            z-index: 1;
+        }
+        .page.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Alt Navigasyon Barı */
+        .bottom-nav {
+            height: 55px;
+            background: #000;
+            border-top: 1px solid #222;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+        }
+        .nav-item {
+            color: #777;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            width: 25%;
+        }
+        .nav-item span { font-size: 0.65rem; }
+        .nav-item.active { color: #fff; }
+        .nav-item-plus {
+            background: linear-gradient(45deg, #ff2851, #e6683c);
+            color: #fff;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        /* Reels Ekranı */
         .reels-feed {
             height: 100%;
             width: 100%;
@@ -46,9 +106,7 @@
             scroll-snap-type: y mandatory;
             scrollbar-width: none;
         }
-        .reels-feed::-webkit-scrollbar {
-            display: none;
-        }
+        .reels-feed::-webkit-scrollbar { display: none; }
         .reel-card {
             height: 100%;
             width: 100%;
@@ -67,9 +125,7 @@
         }
         .overlay-header {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             padding: 15px 20px;
             display: flex;
             justify-content: space-between;
@@ -78,37 +134,30 @@
             z-index: 10;
         }
         .brand {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 800;
-            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
-        .header-actions {
-            display: flex;
-            gap: 8px;
-        }
-        .btn-icon-top {
-            background: rgba(255, 255, 255, 0.2);
+        .btn-back {
+            background: rgba(0,0,0,0.5);
             border: none;
             color: #fff;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.8rem;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
             cursor: pointer;
-            backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            backdrop-filter: blur(5px);
         }
+
         .side-bar {
             position: absolute;
             right: 12px;
-            bottom: 80px;
+            bottom: 30px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -125,26 +174,16 @@
             gap: 4px;
             cursor: pointer;
         }
-        .action-btn i {
-            font-size: 1.8rem;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
-            transition: transform 0.2s;
-        }
-        .action-btn i.active {
-            color: #ff2851;
-        }
-        .action-btn span {
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-        }
+        .action-btn i { font-size: 1.8rem; }
+        .action-btn i.active { color: #ff2851; }
+        .action-btn span { font-size: 0.75rem; font-weight: 600; }
+        
         .bottom-info {
             position: absolute;
             bottom: 20px;
             left: 15px;
             right: 70px;
             z-index: 10;
-            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
         }
         .user-tag {
             font-weight: 700;
@@ -152,675 +191,116 @@
             margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         
-        /* Özel Rozetler */
+        /* Rozetler & Madalyalar */
         .badge {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             padding: 3px 8px;
             border-radius: 12px;
             font-weight: 800;
             display: inline-flex;
             align-items: center;
             gap: 4px;
+            margin-top: 2px;
         }
-        .badge-admin {
-            background: linear-gradient(45deg, #ffd700, #ff8c00);
-            color: #000;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
-        }
-        .badge-vip {
-            background: linear-gradient(45deg, #8a2be2, #4b0082);
+        .badge-admin { background: linear-gradient(45deg, #ff2851, #dc2743); color: #fff; }
+        .badge-bastaci { background: linear-gradient(45deg, #ffd700, #ff8c00); color: #000; }
+        .badge-vip { background: linear-gradient(45deg, #8a2be2, #4b0082); color: #fff; }
+        .badge-aga { background: rgba(255, 255, 255, 0.2); color: #ddd; }
+        .badge-banned { background: #ff0000; color: #fff; }
+        .badge-ultra {
+            background: linear-gradient(45deg, #ff0055, #ff5000, #ffcc00, #9900ff);
+            background-size: 300% 300%;
+            animation: gradientAnimation 3s ease infinite;
             color: #fff;
-            box-shadow: 0 0 10px rgba(138, 43, 226, 0.6);
-        }
-        .badge-aga {
-            background: rgba(255, 255, 255, 0.2);
-            color: #ddd;
+            box-shadow: 0 0 12px rgba(255,0,85,0.8);
         }
 
-        .video-desc {
-            font-size: 0.85rem;
-            line-height: 1.3;
-            opacity: 0.9;
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        .modal {
-            display: none;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 100;
-            flex-direction: column;
-            justify-content: flex-end;
-            backdrop-filter: blur(5px);
-        }
-        .modal-content {
-            background: #1c1c1e;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            padding: 20px;
-            max-height: 85%;
-            overflow-y: auto;
+
+        /* Madalya Kartı Stilleri */
+        .medals-container {
             display: flex;
             flex-direction: column;
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 1.2rem;
-            cursor: pointer;
-        }
-        .comments-list {
-            overflow-y: auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 15px;
-            padding-right: 5px;
-        }
-        .comment-item {
-            display: flex;
             gap: 10px;
-            font-size: 0.85rem;
-            align-items: flex-start;
+            margin-top: 15px;
+            text-align: left;
         }
-        .avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 0.9rem;
-            flex-shrink: 0;
-            overflow: hidden;
-            background-size: cover;
-            background-position: center;
-        }
-        .avatar.vip {
-            background: linear-gradient(135deg, #8a2be2, #4b0082);
-            color: #fff;
-        }
-        .avatar.admin {
-            background: linear-gradient(135deg, #ffd700, #ff8c00);
-            color: #000;
-        }
-        .comment-body {
-            background: #2c2c2e;
-            padding: 8px 12px;
-            border-radius: 12px;
-            flex: 1;
-        }
-        .comment-user {
-            font-weight: 700;
-            font-size: 0.8rem;
-            color: #fff;
-            margin-bottom: 2px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .comment-input-row {
-            display: flex;
-            gap: 8px;
-        }
-        .comment-input {
-            flex: 1;
-            background: #2c2c2e;
-            border: none;
-            padding: 10px 14px;
-            border-radius: 20px;
-            color: white;
-            outline: none;
-        }
-        .btn-send {
-            background: #ff2851;
-            border: none;
-            color: white;
-            padding: 0 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.85rem;
-            color: #aaa;
-        }
-        .form-input {
-            width: 100%;
-            padding: 10px;
-            background: #2c2c2e;
-            border: 1px solid #444;
-            border-radius: 8px;
-            color: white;
-            outline: none;
-        }
-        .btn-primary {
-            width: 100%;
+        .medal-card {
+            background: #1c1c1e;
             padding: 12px;
-            background: #ff2851;
-            border: none;
-            color: white;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 5px;
+            border-radius: 12px;
+            border: 1px solid #333;
         }
-        .user-list-item {
+        .medal-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px;
-            background: #2c2c2e;
-            border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
         }
-        .btn-sm {
-            padding: 4px 10px;
-            font-size: 0.75rem;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
+        .progress-bar-bg {
+            background: #333;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
         }
-        .btn-vip { background: #8a2be2; color: #fff; font-weight: bold; }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #ff2851, #ffd700);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
 
-        /* Profil Stilleri */
-        .profile-card {
-            text-align: center;
-            padding: 10px 0;
-        }
-        .profile-avatar-large {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 10px;
+        /* Arama Ekranı */
+        .search-header { padding: 15px; border-bottom: 1px solid #222; }
+        .search-input-box {
+            background: #1c1c1e;
+            border-radius: 10px;
+            padding: 10px 15px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 2.2rem;
-            font-weight: bold;
-            background-size: cover;
-            background-position: center;
-            border: 2px solid #555;
+            gap: 10px;
+        }
+        .search-input-box input { background: none; border: none; color: white; outline: none; width: 100%; }
+        .search-results { padding: 15px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .search-card {
+            background: #111;
+            border-radius: 10px;
+            overflow: hidden;
             position: relative;
-        }
-        .upload-avatar-btn {
-            background: #333;
-            color: #ccc;
-            font-size: 0.75rem;
-            padding: 6px 12px;
-            border-radius: 12px;
+            height: 180px;
             cursor: pointer;
-            display: inline-block;
-            margin-bottom: 15px;
         }
-    </style>
-</head>
-<body>
-
-<div class="app-container">
-    <div class="overlay-header">
-        <div class="brand">
-            <i class="fa-solid fa-play-circle"></i> AgaReels
-        </div>
-        <div class="header-actions">
-            <button class="btn-icon-top" onclick="openProfileModal()">
-                <i class="fa-solid fa-user"></i> <span id="headerUserBtn">Giriş Yap</span>
-            </button>
-            <button class="btn-icon-top" onclick="checkAdminAuth()">
-                <i class="fa-solid fa-shield-halved"></i> Admin
-            </button>
-        </div>
-    </div>
-
-    <div class="reels-feed" id="reelsFeed"></div>
-</div>
-
-<!-- Giriş / Kayıt Modalı -->
-<div class="modal" id="authModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Hesap Girişi / Kayıt</h3>
-            <button class="modal-close" onclick="closeModal('authModal')">&times;</button>
-        </div>
-        <div class="form-group">
-            <label>Kullanıcı Adı</label>
-            <input type="text" id="authUsername" class="form-input" placeholder="Kullanıcı adınız">
-        </div>
-        <div class="form-group">
-            <label>Şifre</label>
-            <input type="password" id="authPassword" class="form-input" placeholder="Şifreniz">
-        </div>
-        <button class="btn-primary" onclick="handleAuth()">Giriş Yap / Kaydol</button>
-    </div>
-</div>
-
-<!-- Profil Modalı -->
-<div class="modal" id="profileModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Profilim</h3>
-            <button class="modal-close" onclick="closeModal('profileModal')">&times;</button>
-        </div>
-        <div class="profile-card">
-            <div class="profile-avatar-large" id="profAvatar">?</div>
-            <label class="upload-avatar-btn">
-                📸 Profil Resmi Değiştir
-                <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
-            </label>
-            <h2 id="profName" style="margin-bottom: 5px;">-</h2>
-            <div id="profBadge" style="margin-bottom: 20px;"></div>
-            <button class="btn-primary" style="background:#444;" onclick="logout()">Çıkış Yap</button>
-        </div>
-    </div>
-</div>
-
-<!-- Yorumlar Modalı -->
-<div class="modal" id="commentsModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Yorumlar</h3>
-            <button class="modal-close" onclick="closeModal('commentsModal')">&times;</button>
-        </div>
-        <div class="comments-list" id="commentsList"></div>
-        <div class="comment-input-row">
-            <input type="text" id="commentInput" class="comment-input" placeholder="Yorum yaz...">
-            <button class="btn-send" onclick="addComment()">Gönder</button>
-        </div>
-    </div>
-</div>
-
-<!-- Admin Video Yükleme ve VIP Yönetim Modalı -->
-<div class="modal" id="adminModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Admin Paneli 🔥</h3>
-            <button class="modal-close" onclick="closeModal('adminModal')">&times;</button>
-        </div>
-        <h4 style="margin-bottom: 10px; color: #ff2851;">Video Yükle</h4>
-        <div class="form-group">
-            <label>Video Seç (MP4)</label>
-            <input type="file" id="videoFileInput" accept="video/*" class="form-input">
-        </div>
-        <div class="form-group">
-            <label>Açıklama</label>
-            <input type="text" id="videoDescInput" class="form-input" placeholder="Agalara özel mesaj...">
-        </div>
-        <button class="btn-primary" onclick="uploadVideo()">Videoyu Yayınla</button>
-
-        <hr style="border-color: #333; margin: 20px 0;">
-
-        <h4 style="margin-bottom: 10px; color: #8a2be2;">VipPiç Yönetimi</h4>
-        <div id="usersListContainer"></div>
-    </div>
-</div>
-
-<script>
-    // Örnek Videolar
-    const initialVideos = [
-        {
-            id: 1,
-            url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            user: "AdminAga",
-            userRole: "admin",
-            desc: "AgaReels yeni rozetler ve profil resmi seçeneğiyle aktif! 🔥",
-            likes: 18,
-            isLiked: false,
-            comments: [
-                { user: "AdminAga", role: "admin", avatar: "", text: "👑 BaştacıAga rozetiniz hayırlı olsun!" }
-            ]
-        }
-    ];
-
-    // Veriler
-    let users = JSON.parse(localStorage.getItem('agareels_users')) || [
-        { username: "AdminAga", pass: "5824!", role: "admin", avatar: "" }
-    ];
-    let videos = JSON.parse(localStorage.getItem('agareels_videos')) || initialVideos;
-    let currentUser = JSON.parse(localStorage.getItem('agareels_current_user')) || null;
-    let activeVideoId = null;
-
-    document.addEventListener("DOMContentLoaded", () => {
-        updateHeaderUserBtn();
-        renderFeed();
-        setupScrollObserver();
-    });
-
-    function getBadgeHTML(role) {
-        if (role === 'admin') return '<span class="badge badge-admin">👑 BaştacıAga</span>';
-        if (role === 'vip') return '<span class="badge badge-vip">😈 VipPiç</span>';
-        return '<span class="badge badge-aga">🤡 Küçük31ci</span>';
-    }
-
-    function updateHeaderUserBtn() {
-        const btnText = document.getElementById('headerUserBtn');
-        if (currentUser) {
-            btnText.innerText = currentUser.username;
-        } else {
-            btnText.innerText = "Giriş Yap";
-        }
-    }
-
-    // Profil ve Avatar Yükleme
-    function openProfileModal() {
-        if (!currentUser) {
-            document.getElementById('authModal').style.display = 'flex';
-        } else {
-            document.getElementById('profName').innerText = currentUser.username;
-            const avatar = document.getElementById('profAvatar');
-            const badge = document.getElementById('profBadge');
-
-            if (currentUser.avatar) {
-                avatar.style.backgroundImage = `url(${currentUser.avatar})`;
-                avatar.innerText = '';
-            } else {
-                avatar.style.backgroundImage = 'none';
-                avatar.innerText = currentUser.username.charAt(0).toUpperCase();
-            }
-            avatar.className = `profile-avatar-large ${currentUser.role}`;
-
-            badge.innerHTML = getBadgeHTML(currentUser.role);
-            document.getElementById('profileModal').style.display = 'flex';
-        }
-    }
-
-    function uploadAvatar(input) {
-        const file = input.files[0];
-        if (file && currentUser) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgData = e.target.result;
-                currentUser.avatar = imgData;
-                
-                // Kullanıcı ve genel listeyi güncelle
-                let u = users.find(x => x.username === currentUser.username);
-                if (u) u.avatar = imgData;
-
-                localStorage.setItem('agareels_users', JSON.stringify(users));
-                localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-                
-                openProfileModal();
-                renderFeed();
-                alert('Profil resmin yenilendi!');
-            };
-            reader.readAsDataURL(file);
-        }
-    }
-
-    function handleAuth() {
-        const u = document.getElementById('authUsername').value.trim();
-        const p = document.getElementById('authPassword').value.trim();
-
-        if (!u || !p) {
-            alert("Lütfen tüm alanları doldurun!");
-            return;
+        .search-card video { width: 100%; height: 100%; object-fit: cover; }
+        .search-card-info {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 8px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent);
+            font-size: 0.75rem;
         }
 
-        let existingUser = users.find(x => x.username.toLowerCase() === u.toLowerCase());
-
-        if (existingUser) {
-            if (existingUser.pass === p) {
-                currentUser = existingUser;
-                alert("Giriş başarılı!");
-            } else {
-                alert("Hatalı şifre!");
-                return;
-            }
-        } else {
-            let newUser = { username: u, pass: p, role: "aga", avatar: "" };
-            users.push(newUser);
-            currentUser = newUser;
-            localStorage.setItem('agareels_users', JSON.stringify(users));
-            alert("Kayıt başarılı! Hoş geldin " + u);
+        /* Profil Sayfası */
+        .profile-page-content { padding: 20px; text-align: center; }
+        .profile-avatar-large {
+            width: 90px; height: 90px; border-radius: 50%; margin: 10px auto;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; font-weight: bold; background-size: cover; background-position: center;
+            border: 2px solid #444;
         }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #aaa; }
+        .form-input { width: 100%; padding: 10px; background: #2c2c2e; border: 1px solid #444; border-radius: 8px; color: white; outline: none; }
+        .btn-primary { width: 100%; padding: 12px; background: #ff2851; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
 
-        localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-        updateHeaderUserBtn();
-        closeModal('authModal');
-    }
-
-    function logout() {
-        currentUser = null;
-        localStorage.removeItem('agareels_current_user');
-        updateHeaderUserBtn();
-        closeModal('profileModal');
-        alert("Çıkış yapıldı.");
-    }
-
-    // Admin Şifre Kontrolü
-    function checkAdminAuth() {
-        const pass = prompt("Admin Şifresini Giriniz:");
-        if (pass === "5824!") {
-            renderAdminUserList();
-            document.getElementById('adminModal').style.display = 'flex';
-        } else if(pass !== null) {
-            alert("Hatalı Admin Şifresi!");
-        }
-    }
-
-    function renderAdminUserList() {
-        const container = document.getElementById('usersListContainer');
-        container.innerHTML = '';
-
-        users.forEach(u => {
-            if (u.role === 'admin') return;
-
-            const div = document.createElement('div');
-            div.className = 'user-list-item';
-            div.innerHTML = `
-                <div>
-                    <strong>@${u.username}</strong> 
-                    ${getBadgeHTML(u.role)}
-                </div>
-                <button class="btn-sm btn-vip" onclick="toggleVip('${u.username}')">
-                    ${u.role === 'vip' ? 'VipPiç Yapma' : 'VipPiç Yap'}
-                </button>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    function toggleVip(username) {
-        let u = users.find(x => x.username === username);
-        if (u) {
-            u.role = u.role === 'vip' ? 'aga' : 'vip';
-            localStorage.setItem('agareels_users', JSON.stringify(users));
-            
-            if (currentUser && currentUser.username === username) {
-                currentUser.role = u.role;
-                localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-            }
-            renderAdminUserList();
-            renderFeed();
-        }
-    }
-
-    // Feed & Videos
-    function renderFeed() {
-        const feed = document.getElementById('reelsFeed');
-        feed.innerHTML = '';
-
-        videos.forEach((video) => {
-            const card = document.createElement('div');
-            card.className = 'reel-card';
-
-            card.innerHTML = `
-                <video src="${video.url}" loop playsinline onclick="togglePlay(this)"></video>
-                
-                <div class="side-bar">
-                    <button class="action-btn" onclick="toggleLike(${video.id})">
-                        <i class="fa-solid fa-heart ${video.isLiked ? 'active' : ''}"></i>
-                        <span>${video.likes}</span>
-                    </button>
-                    <button class="action-btn" onclick="openCommentsModal(${video.id})">
-                        <i class="fa-solid fa-comment"></i>
-                        <span>${video.comments.length}</span>
-                    </button>
-                </div>
-
-                <div class="bottom-info">
-                    <div class="user-tag">
-                        @${video.user}
-                        ${getBadgeHTML(video.userRole)}
-                    </div>
-                    <div class="video-desc">${video.desc}</div>
-                </div>
-            `;
-
-            feed.appendChild(card);
-        });
-    }
-
-    function setupScrollObserver() {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                const video = entry.target.querySelector('video');
-                if (video) {
-                    if (entry.isIntersecting) {
-                        video.play().catch(()=>{});
-                    } else {
-                        video.pause();
-                    }
-                }
-            });
-        }, { threshold: 0.6 });
-
-        document.querySelectorAll('.reel-card').forEach(card => observer.observe(card));
-    }
-
-    function togglePlay(videoEl) {
-        if (videoEl.paused) videoEl.play();
-        else videoEl.pause();
-    }
-
-    function toggleLike(id) {
-        const video = videos.find(v => v.id === id);
-        if (video) {
-            video.isLiked = !video.isLiked;
-            video.likes += video.isLiked ? 1 : -1;
-            saveAndRefresh();
-        }
-    }
-
-    // Yorumlar
-    function openCommentsModal(id) {
-        activeVideoId = id;
-        renderComments();
-        document.getElementById('commentsModal').style.display = 'flex';
-    }
-
-    function renderComments() {
-        const video = videos.find(v => v.id === activeVideoId);
-        const list = document.getElementById('commentsList');
-        list.innerHTML = '';
-
-        if (!video || video.comments.length === 0) {
-            list.innerHTML = '<div style="color:#666; text-align:center; padding:20px;">İlk yorumu sen yap!</div>';
-            return;
-        }
-
-        video.comments.forEach(c => {
-            const initial = c.user.charAt(0).toUpperCase();
-            const avatarStyle = c.avatar ? `background-image: url(${c.avatar});` : '';
-            const avatarContent = c.avatar ? '' : initial;
-
-            list.innerHTML += `
-                <div class="comment-item">
-                    <div class="avatar ${c.role}" style="${avatarStyle}">${avatarContent}</div>
-                    <div class="comment-body">
-                        <div class="comment-user">
-                            @${c.user} ${getBadgeHTML(c.role)}
-                        </div>
-                        <div>${c.text}</div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function addComment() {
-        if (!currentUser) {
-            alert("Yorum yapmak için önce giriş yapmalısın!");
-            openProfileModal();
-            return;
-        }
-
-        const input = document.getElementById('commentInput');
-        const text = input.value.trim();
-
-        if (text && activeVideoId) {
-            const video = videos.find(v => v.id === activeVideoId);
-            video.comments.push({ 
-                user: currentUser.username, 
-                role: currentUser.role, 
-                avatar: currentUser.avatar || '',
-                text: text 
-            });
-            input.value = '';
-            renderComments();
-            saveAndRefresh();
-        }
-    }
-
-    function uploadVideo() {
-        const fileInput = document.getElementById('videoFileInput');
-        const descInput = document.getElementById('videoDescInput');
-        const file = fileInput.files[0];
-
-        if (!file) {
-            alert('Lütfen bir video dosyası seçin!');
-            return;
-        }
-
-        const videoUrl = URL.createObjectURL(file);
-        const newVideo = {
-            id: Date.now(),
-            url: videoUrl,
-            user: "AdminAga",
-            userRole: "admin",
-            desc: descInput.value || "Agalara özel video!",
-            likes: 0,
-            isLiked: false,
-            comments: []
-        };
-
-        videos.unshift(newVideo);
-        saveAndRefresh();
-        closeModal('adminModal');
-        fileInput.value = '';
-        descInput.value = '';
-    }
-
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
-    }
-
-    function saveAndRefresh() {
-        localStorage.setItem('agareels_videos', JSON.stringify(videos));
-        renderFeed();
-        setupScrollObserver();
-    }
-</script>
-</body>
-</html>
+        /* Modal & Yorumlar */
+        .modal {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index:
