@@ -140,7 +140,11 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .btn-back {
+        .header-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-icon-top {
             background: rgba(0,0,0,0.5);
             border: none;
             color: #fff;
@@ -152,6 +156,7 @@
             align-items: center;
             justify-content: center;
             backdrop-filter: blur(5px);
+            font-size: 0.9rem;
         }
 
         .side-bar {
@@ -303,4 +308,613 @@
         /* Modal & Yorumlar */
         .modal {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index:
+            background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; justify-content: flex-end; backdrop-filter: blur(5px);
+        }
+        .modal-content { background: #1c1c1e; border-top-left-radius: 20px; border-top-right-radius: 20px; padding: 20px; max-height: 80%; overflow-y: auto; }
+        .comments-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+        .comment-item { display: flex; gap: 10px; font-size: 0.85rem; }
+        .avatar {
+            width: 34px; height: 34px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 0.85rem; flex-shrink: 0; background-size: cover; background-position: center;
+        }
+        .comment-body { background: #2c2c2e; padding: 8px 12px; border-radius: 12px; flex: 1; }
+        .comment-user { font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+        .comment-input-row { display: flex; gap: 8px; }
+        .comment-input { flex: 1; background: #2c2c2e; border: none; padding: 10px 14px; border-radius: 20px; color: white; outline: none; }
+        .btn-send { background: #ff2851; border: none; color: white; padding: 0 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
+        
+        .user-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #2c2c2e; border-radius: 8px; margin-bottom: 8px; }
+        .user-actions { display: flex; gap: 4px; }
+        .btn-sm { padding: 4px 8px; font-size: 0.7rem; border-radius: 6px; border: none; cursor: pointer; color: #fff; }
+        .btn-bastaci { background: #ffd700; color: #000; font-weight: bold; }
+        .btn-vip { background: #8a2be2; font-weight: bold; }
+        .btn-ban { background: #ff2851; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="content-area">
+        
+        <!-- 1. ANA SAYFA -->
+        <div class="page active" id="pageHome">
+            <div class="overlay-header">
+                <button class="btn-icon-top" onclick="switchPage('pageSearch')"><i class="fa-solid fa-arrow-left"></i></button>
+                <div class="brand"><i class="fa-solid fa-play-circle"></i> AgaReels</div>
+                <div class="header-btn-group">
+                    <button class="btn-icon-top" id="muteToggleBtn" onclick="toggleMuteAll()"><i class="fa-solid fa-volume-high"></i></button>
+                    <button class="btn-icon-top" onclick="checkAdminAuth()"><i class="fa-solid fa-shield-halved"></i></button>
+                </div>
+            </div>
+            <div class="reels-feed" id="reelsFeed"></div>
+        </div>
+
+        <!-- 2. ARAMA SAYFASI -->
+        <div class="page" id="pageSearch">
+            <div class="search-header">
+                <div class="search-input-box">
+                    <i class="fa-solid fa-magnifying-glass" style="color: #666;"></i>
+                    <input type="text" id="searchInput" placeholder="Reels veya aga ara..." oninput="filterSearch()">
+                </div>
+            </div>
+            <div class="search-results" id="searchResults"></div>
+        </div>
+
+        <!-- 3. PROFİL SAYFASI -->
+        <div class="page" id="pageProfile">
+            <div class="profile-page-content" id="profileContainer"></div>
+        </div>
+
+    </div>
+
+    <!-- Alt Navigasyon Barı -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="switchPage('pageHome', this)">
+            <i class="fa-solid fa-house"></i>
+            <span>Ana Sayfa</span>
+        </button>
+        <button class="nav-item" onclick="switchPage('pageSearch', this)">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Arama</span>
+        </button>
+        <button class="nav-item" onclick="openUploadFromNav()">
+            <div class="nav-item-plus"><i class="fa-solid fa-plus"></i></div>
+        </button>
+        <button class="nav-item" onclick="switchPage('pageProfile', this)">
+            <i class="fa-solid fa-user"></i>
+            <span>Profil</span>
+        </button>
+    </div>
+</div>
+
+<!-- Yorumlar Modalı -->
+<div class="modal" id="commentsModal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>Yorumlar</h3>
+            <button style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;" onclick="closeModal('commentsModal')">&times;</button>
+        </div>
+        <div class="comments-list" id="commentsList"></div>
+        <div class="comment-input-row">
+            <input type="text" id="commentInput" class="comment-input" placeholder="Yorum yaz...">
+            <button class="btn-send" onclick="addComment()">Gönder</button>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Modalı -->
+<div class="modal" id="adminModal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 style="color:#ff2851;">Admin Paneli 🔥</h3>
+            <button style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;" onclick="closeModal('adminModal')">&times;</button>
+        </div>
+        <h4 style="margin-bottom: 10px;">Video Yükle</h4>
+        <div class="form-group">
+            <label>Video Seç (MP4)</label>
+            <input type="file" id="videoFileInput" accept="video/*" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <input type="text" id="videoDescInput" class="form-input" placeholder="Agalara özel mesaj...">
+        </div>
+        <button class="btn-primary" onclick="uploadVideo()">Videoyu Yayınla</button>
+
+        <hr style="border-color: #333; margin: 20px 0;">
+
+        <h4 style="margin-bottom: 10px; color: #ffd700;">Kullanıcı Yetki & Ban Yönetimi</h4>
+        <div id="usersListContainer"></div>
+    </div>
+</div>
+
+<script>
+    const initialVideos = [
+        {
+            id: 1,
+            url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+            user: "AdminAga",
+            userRole: "admin",
+            desc: "AgaReels Ses Kısma / Açma özelliğiyle yenilendi! 🔊",
+            likes: 25,
+            isLiked: false,
+            comments: []
+        }
+    ];
+
+    let users = JSON.parse(localStorage.getItem('agareels_users')) || [
+        { 
+            username: "AdminAga", 
+            pass: "5824!", 
+            role: "admin", 
+            avatar: "", 
+            isBanned: false,
+            stats: { watched: [], liked: [], commented: [] } 
+        }
+    ];
+    let videos = JSON.parse(localStorage.getItem('agareels_videos')) || initialVideos;
+    let currentUser = JSON.parse(localStorage.getItem('agareels_current_user')) || null;
+    let activeVideoId = null;
+    let isGlobalMuted = false;
+
+    const MEDAL_LEVELS = [
+        { count: 5, name: "Bronz", icon: "🥉" },
+        { count: 15, name: "Gümüş", icon: "🥈" },
+        { count: 30, name: "Altın", icon: "🥇" },
+        { count: 50, name: "Elmas", icon: "💎" },
+        { count: 75, name: "Yakut", icon: "🔻" }
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        renderFeed();
+        renderSearch();
+        renderProfilePage();
+        setupScrollObserver();
+    });
+
+    // Ses Açma / Kısma Yönetimi
+    function toggleMuteAll() {
+        isGlobalMuted = !isGlobalMuted;
+        const btnIcon = document.querySelector('#muteToggleBtn i');
+
+        document.querySelectorAll('video').forEach(v => {
+            v.muted = isGlobalMuted;
+        });
+
+        if (isGlobalMuted) {
+            btnIcon.className = 'fa-solid fa-volume-xmark';
+            btnIcon.style.color = '#ff2851';
+        } else {
+            btnIcon.className = 'fa-solid fa-volume-high';
+            btnIcon.style.color = '#fff';
+        }
+    }
+
+    function getUserStats(userObj) {
+        if (!userObj.stats) userObj.stats = { watched: [], liked: [], commented: [] };
+        return userObj.stats;
+    }
+
+    function getBadgesHTML(userObj) {
+        if (!userObj) return '';
+        if (userObj.isBanned) return '<span class="badge badge-banned">🚫 BANLI</span>';
+
+        let html = '';
+
+        if (userObj.role === 'admin') html += '<span class="badge badge-admin">👑 Admin Aga</span>';
+        else if (userObj.role === 'bastaci') html += '<span class="badge badge-bastaci">👑 BaştacıAga</span>';
+        else if (userObj.role === 'vip') html += '<span class="badge badge-vip">😈 VipPiç</span>';
+        else html += '<span class="badge badge-aga">🤡 Küçük31ci</span>';
+
+        const stats = getUserStats(userObj);
+        const wCount = (stats.watched || []).length;
+        const lCount = (stats.liked || []).length;
+        const cCount = (stats.commented || []).length;
+
+        if (wCount >= 75 && lCount >= 75 && cCount >= 75) {
+            html += '<span class="badge badge-ultra">🔥 ULTRA MEGA AGA 🔥</span>';
+            return html;
+        }
+
+        const getTier = (cnt, type) => {
+            let current = null;
+            for (let lvl of MEDAL_LEVELS) {
+                if (cnt >= lvl.count) current = `${lvl.icon} ${lvl.name} ${type}`;
+            }
+            return current;
+        };
+
+        const wMedal = getTier(wCount, "İzleyici");
+        const lMedal = getTier(lCount, "Beğenici");
+        const cMedal = getTier(cCount, "Yorumcu");
+
+        if (wMedal) html += `<span class="badge badge-aga">${wMedal}</span>`;
+        if (lMedal) html += `<span class="badge badge-aga">${lMedal}</span>`;
+        if (cMedal) html += `<span class="badge badge-aga">${cMedal}</span>`;
+
+        return html;
+    }
+
+    function switchPage(pageId, btnEl) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(pageId).classList.add('active');
+        if (btnEl) btnEl.classList.add('active');
+
+        if (pageId === 'pageProfile') renderProfilePage();
+        if (pageId === 'pageSearch') renderSearch();
+    }
+
+    function openUploadFromNav() { checkAdminAuth(); }
+
+    function renderFeed() {
+        const feed = document.getElementById('reelsFeed');
+        feed.innerHTML = '';
+
+        videos.forEach((video) => {
+            const card = document.createElement('div');
+            card.className = 'reel-card';
+            card.dataset.id = video.id;
+
+            const videoUserObj = users.find(u => u.username === video.user) || { username: video.user, role: video.userRole };
+
+            card.innerHTML = `
+                <video src="${video.url}" loop playsinline onclick="togglePlay(this)"></video>
+                
+                <div class="side-bar">
+                    <button class="action-btn" onclick="toggleLike(${video.id})">
+                        <i class="fa-solid fa-heart ${video.isLiked ? 'active' : ''}"></i>
+                        <span>${video.likes}</span>
+                    </button>
+                    <button class="action-btn" onclick="openCommentsModal(${video.id})">
+                        <i class="fa-solid fa-comment"></i>
+                        <span>${video.comments.length}</span>
+                    </button>
+                </div>
+
+                <div class="bottom-info">
+                    <div class="user-tag">
+                        @${video.user}
+                        ${getBadgesHTML(videoUserObj)}
+                    </div>
+                    <div class="video-desc">${video.desc}</div>
+                </div>
+            `;
+
+            feed.appendChild(card);
+        });
+    }
+
+    function setupScrollObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target.querySelector('video');
+                const card = entry.target;
+                const videoId = parseInt(card.dataset.id || "1");
+
+                if (video) {
+                    video.muted = isGlobalMuted;
+                    if (entry.isIntersecting) {
+                        video.play().catch(()=>{});
+                        recordStat('watched', videoId);
+                    } else {
+                        video.pause();
+                    }
+                }
+            });
+        }, { threshold: 0.6 });
+
+        document.querySelectorAll('.reel-card').forEach(card => observer.observe(card));
+    }
+
+    function recordStat(type, videoId) {
+        if (!currentUser) return;
+        let u = users.find(x => x.username === currentUser.username);
+        if (!u) return;
+
+        let stats = getUserStats(u);
+        if (!stats[type].includes(videoId)) {
+            stats[type].push(videoId);
+            currentUser.stats = stats;
+            localStorage.setItem('agareels_users', JSON.stringify(users));
+            localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+        }
+    }
+
+    function togglePlay(v) { 
+        if (v.paused) v.play(); 
+        else v.pause(); 
+    }
+
+    function toggleLike(id) {
+        if (currentUser && currentUser.isBanned) return alert("🚫 Banlandığınız için işlem yapamazsınız!");
+        const video = videos.find(v => v.id === id);
+        if (video) {
+            video.isLiked = !video.isLiked;
+            video.likes += video.isLiked ? 1 : -1;
+            if (video.isLiked) recordStat('liked', id);
+            saveAndRefresh();
+        }
+    }
+
+    function renderSearch() { filterSearch(); }
+
+    function filterSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const container = document.getElementById('searchResults');
+        container.innerHTML = '';
+
+        const filtered = videos.filter(v => v.desc.toLowerCase().includes(query) || v.user.toLowerCase().includes(query));
+
+        filtered.forEach(v => {
+            const div = document.createElement('div');
+            div.className = 'search-card';
+            div.onclick = () => switchPage('pageHome');
+            div.innerHTML = `
+                <video src="${v.url}"></video>
+                <div class="search-card-info">
+                    <strong>@${v.user}</strong>
+                    <div>${v.desc}</div>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function renderProfilePage() {
+        const container = document.getElementById('profileContainer');
+        
+        if (!currentUser) {
+            container.innerHTML = `
+                <h3>Giriş Yap veya Kaydol</h3>
+                <p style="color:#888; margin-bottom:20px; font-size:0.85rem;">AgaReels klanına katılmak ve madalyaları toplamak için hesap oluştur!</p>
+                <div class="form-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="authUsername" class="form-input" placeholder="Kullanıcı adın">
+                </div>
+                <div class="form-group">
+                    <label>Şifre</label>
+                    <input type="password" id="authPassword" class="form-input" placeholder="Şifren">
+                </div>
+                <button class="btn-primary" onclick="handleAuth()">Giriş Yap / Kaydol</button>
+            `;
+        } else {
+            const stats = getUserStats(currentUser);
+            const wCount = (stats.watched || []).length;
+            const lCount = (stats.liked || []).length;
+            const cCount = (stats.commented || []).length;
+
+            const avatarBg = currentUser.avatar ? `background-image: url(${currentUser.avatar});` : '';
+            const initial = currentUser.avatar ? '' : currentUser.username.charAt(0).toUpperCase();
+
+            const createMedalProgressHTML = (title, count) => {
+                let nextTarget = 75;
+                for (let lvl of MEDAL_LEVELS) {
+                    if (count < lvl.count) { nextTarget = lvl.count; break; }
+                }
+                const pct = Math.min(100, Math.round((count / nextTarget) * 100));
+
+                return `
+                    <div class="medal-card">
+                        <div class="medal-card-header">
+                            <span>${title}</span>
+                            <span style="color:#ffd700;">${count} / ${nextTarget} Reels</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${pct}%;"></div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            container.innerHTML = `
+                <div class="profile-avatar-large" style="${avatarBg}">${initial}</div>
+                <label style="background:#333; color:#ccc; font-size:0.75rem; padding:6px 12px; border-radius:12px; cursor:pointer; display:inline-block; margin-bottom:10px;">
+                    📸 Fotoğraf Yükle
+                    <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
+                </label>
+                <h2>@${currentUser.username}</h2>
+                <div style="margin: 8px 0; display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                    ${getBadgesHTML(currentUser)}
+                </div>
+
+                <div class="medals-container">
+                    <h4 style="color:#aaa; font-size:0.8rem; margin-top:5px;">🏆 MADALYA İLERLEMESİ</h4>
+                    ${createMedalProgressHTML("👁️ İzleme Başarımı", wCount)}
+                    ${createMedalProgressHTML("❤️ Beğeni Başarımı", lCount)}
+                    ${createMedalProgressHTML("💬 Yorum Başarımı", cCount)}
+                </div>
+
+                <button class="btn-primary" style="background:#333; margin-top:20px;" onclick="logout()">Çıkış Yap</button>
+            `;
+        }
+    }
+
+    function handleAuth() {
+        const u = document.getElementById('authUsername').value.trim();
+        const p = document.getElementById('authPassword').value.trim();
+
+        if (!u || !p) return alert("Alanları doldurun!");
+
+        let existingUser = users.find(x => x.username.toLowerCase() === u.toLowerCase());
+
+        if (existingUser) {
+            if (existingUser.isBanned) return alert("🚫 Bu hesap BANLANMIŞTIR!");
+            if (existingUser.pass === p) currentUser = existingUser;
+            else return alert("Hatalı şifre!");
+        } else {
+            let newUser = { 
+                username: u, pass: p, role: "aga", avatar: "", isBanned: false,
+                stats: { watched: [], liked: [], commented: [] }
+            };
+            users.push(newUser);
+            currentUser = newUser;
+            localStorage.setItem('agareels_users', JSON.stringify(users));
+        }
+
+        localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+        renderProfilePage();
+    }
+
+    function uploadAvatar(input) {
+        const file = input.files[0];
+        if (file && currentUser) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentUser.avatar = e.target.result;
+                let u = users.find(x => x.username === currentUser.username);
+                if (u) u.avatar = currentUser.avatar;
+
+                localStorage.setItem('agareels_users', JSON.stringify(users));
+                localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+                renderProfilePage();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('agareels_current_user');
+        renderProfilePage();
+    }
+
+    function checkAdminAuth() {
+        const pass = prompt("Admin Şifresini Giriniz:");
+        if (pass === "5824!") {
+            renderAdminUserList();
+            document.getElementById('adminModal').style.display = 'flex';
+        } else if(pass !== null) alert("Hatalı Admin Şifresi!");
+    }
+
+    function renderAdminUserList() {
+        const container = document.getElementById('usersListContainer');
+        container.innerHTML = '';
+
+        users.forEach(u => {
+            if (u.role === 'admin') return;
+
+            const div = document.createElement('div');
+            div.className = 'user-list-item';
+            div.innerHTML = `
+                <div>
+                    <strong>@${u.username}</strong> 
+                    <div>${getBadgesHTML(u)}</div>
+                </div>
+                <div class="user-actions">
+                    <button class="btn-sm btn-bastaci" onclick="setUserRole('${u.username}', 'bastaci')">Baştacı</button>
+                    <button class="btn-sm btn-vip" onclick="setUserRole('${u.username}', 'vip')">VIP</button>
+                    <button class="btn-sm btn-ban" onclick="toggleBan('${u.username}')">${u.isBanned ? 'Aç' : 'Ban'}</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function setUserRole(username, role) {
+        let u = users.find(x => x.username === username);
+        if (u) {
+            u.role = u.role === role ? 'aga' : role;
+            localStorage.setItem('agareels_users', JSON.stringify(users));
+            if (currentUser && currentUser.username === username) currentUser.role = u.role;
+            renderAdminUserList();
+            renderFeed();
+        }
+    }
+
+    function toggleBan(username) {
+        let u = users.find(x => x.username === username);
+        if (u) {
+            u.isBanned = !u.isBanned;
+            localStorage.setItem('agareels_users', JSON.stringify(users));
+            if (currentUser && currentUser.username === username && u.isBanned) logout();
+            renderAdminUserList();
+            renderFeed();
+        }
+    }
+
+    function openCommentsModal(id) {
+        activeVideoId = id;
+        renderComments();
+        document.getElementById('commentsModal').style.display = 'flex';
+    }
+
+    function renderComments() {
+        const video = videos.find(v => v.id === activeVideoId);
+        const list = document.getElementById('commentsList');
+        list.innerHTML = '';
+
+        if (!video || video.comments.length === 0) {
+            list.innerHTML = '<div style="color:#666; text-align:center; padding:15px;">İlk yorumu sen yaz!</div>';
+            return;
+        }
+
+        video.comments.forEach(c => {
+            const commentUserObj = users.find(u => u.username === c.user) || { username: c.user, role: c.role };
+            const avatarStyle = c.avatar ? `background-image: url(${c.avatar});` : '';
+            const initial = c.avatar ? '' : c.user.charAt(0).toUpperCase();
+
+            list.innerHTML += `
+                <div class="comment-item">
+                    <div class="avatar" style="${avatarStyle}">${initial}</div>
+                    <div class="comment-body">
+                        <div class="comment-user">
+                            @${c.user} ${getBadgesHTML(commentUserObj)}
+                        </div>
+                        <div>${c.text}</div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    function addComment() {
+        if (!currentUser) return alert("Önce giriş yapmalısın!");
+        if (currentUser.isBanned) return alert("🚫 Banlandınız!");
+
+        const input = document.getElementById('commentInput');
+        const text = input.value.trim();
+
+        if (text && activeVideoId) {
+            const video = videos.find(v => v.id === activeVideoId);
+            video.comments.push({ user: currentUser.username, role: currentUser.role, avatar: currentUser.avatar || '', text: text });
+            input.value = '';
+            
+            recordStat('commented', activeVideoId);
+            renderComments();
+            saveAndRefresh();
+        }
+    }
+
+    function uploadVideo() {
+        const fileInput = document.getElementById('videoFileInput');
+        const descInput = document.getElementById('videoDescInput');
+        const file = fileInput.files[0];
+
+        if (!file) return alert('Video seçin!');
+
+        const newVideo = {
+            id: Date.now(),
+            url: URL.createObjectURL(file),
+            user: "AdminAga",
+            userRole: "admin",
+            desc: descInput.value || "Yeni Reels!",
+            likes: 0,
+            isLiked: false,
+            comments: []
+        };
+
+        videos.unshift(newVideo);
+        saveAndRefresh();
+        closeModal('adminModal');
+        switchPage('pageHome');
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function saveAndRefresh() {
+        localStorage.setItem('agareels_videos', JSON.stringify(videos));
+        renderFeed();
+    }
+</script>
+</body>
+</html>
