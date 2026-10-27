@@ -210,6 +210,7 @@
             align-items: center;
             gap: 6px;
             flex-wrap: wrap;
+            cursor: pointer;
         }
         
         /* Rozetler & Madalyalar */
@@ -323,10 +324,10 @@
         .comment-item { display: flex; gap: 10px; font-size: 0.85rem; }
         .avatar {
             width: 34px; height: 34px; border-radius: 50%; background: #444; display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 0.85rem; flex-shrink: 0; background-size: cover; background-position: center;
+            font-weight: bold; font-size: 0.85rem; flex-shrink: 0; background-size: cover; background-position: center; cursor: pointer;
         }
         .comment-body { background: #2c2c2e; padding: 8px 12px; border-radius: 12px; flex: 1; }
-        .comment-user { font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+        .comment-user { font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; cursor: pointer; }
         .comment-input-row { display: flex; gap: 8px; }
         .comment-input { flex: 1; background: #2c2c2e; border: none; padding: 10px 14px; border-radius: 20px; color: white; outline: none; }
         .btn-send { background: #ff2851; border: none; color: white; padding: 0 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
@@ -407,8 +408,8 @@
         </div>
         
         <div class="form-group">
-            <label>Video Seç (MP4)</label>
-            <input type="file" id="videoFileInput" accept="video/*" class="form-input">
+            <label>Direct Video URL (MP4 Bağlantısı)</label>
+            <input type="text" id="videoUrlInput" class="form-input" placeholder="https://ornek.com/video.mp4">
         </div>
         <div class="form-group">
             <label>Video Görünüm Modu</label>
@@ -422,6 +423,17 @@
             <input type="text" id="videoDescInput" class="form-input" placeholder="Agalara özel mesaj...">
         </div>
         <button class="btn-primary" onclick="uploadVideo()">Videoyu Yayınla</button>
+    </div>
+</div>
+
+<!-- Kullanıcı Profil Detay Modalı -->
+<div class="modal" id="userCardModal">
+    <div class="modal-content" style="text-align: center;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>Kullanıcı Profili</h3>
+            <button style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;" onclick="closeModal('userCardModal')">&times;</button>
+        </div>
+        <div id="userCardContent"></div>
     </div>
 </div>
 
@@ -465,7 +477,7 @@
             url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             user: "AdminAga",
             userRole: "admin",
-            desc: "AgaReels Tekli Tag Seçimi ve Oturum Yönetimi ile Yayında! 🔥",
+            desc: "AgaReels Kullanıcı Profili İnceleme ve URL Video Desteği ile Güncellendi! 🔥",
             fit: "contain",
             likes: 25,
             isLiked: false,
@@ -527,7 +539,6 @@
         return userObj.stats;
     }
 
-    // Kullanıcının Sahip Olduğu Tüm Tag'lerin Listesi
     function getUserAvailableTags(userObj) {
         if (!userObj) return [];
         if (userObj.isBanned) return ['🚫 BANLI'];
@@ -572,7 +583,6 @@
         return tags;
     }
 
-    // Kullanıcının Ekranda Görünecek TEK TAG'ini Getirir
     function getBadgesHTML(userObj) {
         if (!userObj) return '';
         if (userObj.isBanned) return '<span class="badge badge-banned">🚫 BANLI</span>';
@@ -591,6 +601,35 @@
         else if (tagToDisplay.includes('ULTRA')) bgClass = 'badge-ultra';
 
         return `<span class="badge ${bgClass}">${tagToDisplay}</span>`;
+    }
+
+    function openUserProfileCard(username) {
+        const u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
+        const cardContent = document.getElementById('userCardContent');
+
+        if (!u) {
+            cardContent.innerHTML = `<p style="color:#aaa;">Kullanıcı bulunamadı.</p>`;
+        } else {
+            const avatarBg = u.avatar ? `background-image: url(${u.avatar});` : '';
+            const initial = u.avatar ? '' : u.username.charAt(0).toUpperCase();
+            const tags = getUserAvailableTags(u);
+
+            cardContent.innerHTML = `
+                <div class="profile-avatar-large" style="${avatarBg}">${initial}</div>
+                <h2 style="margin-bottom:8px;">@${u.username}</h2>
+                <div style="margin-bottom:15px;">
+                    <label style="font-size:0.75rem; color:#888;">Aktif Unvanı:</label><br>
+                    ${getBadgesHTML(u)}
+                </div>
+                <div style="background:#2c2c2e; padding:12px; border-radius:12px; text-align:left;">
+                    <h4 style="color:#ffd700; font-size:0.8rem; margin-bottom:8px;">🏅 Sahip Olduğu Tüm Unvanlar</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        ${tags.map(t => `<span class="badge badge-aga">${t}</span>`).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        document.getElementById('userCardModal').style.display = 'flex';
     }
 
     function switchPage(pageId, btnEl) {
@@ -651,7 +690,7 @@
                 </div>
 
                 <div class="bottom-info">
-                    <div class="user-tag">
+                    <div class="user-tag" onclick="openUserProfileCard('${video.user}')">
                         @${video.user}
                         ${getBadgesHTML(videoUserObj)}
                     </div>
@@ -773,7 +812,6 @@
             const avatarBg = currentUser.avatar ? `background-image: url(${currentUser.avatar});` : '';
             const initial = currentUser.avatar ? '' : currentUser.username.charAt(0).toUpperCase();
 
-            // Unvan Seçim Menüsü Oluştur
             const availableTags = getUserAvailableTags(currentUser);
             let selectOptionsHTML = availableTags.map(t => 
                 `<option value="${t}" ${currentUser.selectedTag === t ? 'selected' : ''}>${t}</option>`
@@ -1026,9 +1064,9 @@
 
             list.innerHTML += `
                 <div class="comment-item">
-                    <div class="avatar" style="${avatarStyle}">${initial}</div>
+                    <div class="avatar" style="${avatarStyle}" onclick="openUserProfileCard('${c.user}')">${initial}</div>
                     <div class="comment-body">
-                        <div class="comment-user">
+                        <div class="comment-user" onclick="openUserProfileCard('${c.user}')">
                             @${c.user} ${getBadgesHTML(commentUserObj)}
                         </div>
                         <div>${c.text}</div>
@@ -1059,16 +1097,16 @@
     function uploadVideo() {
         if (!currentUser) return alert('Giriş yapmalısınız!');
 
-        const fileInput = document.getElementById('videoFileInput');
+        const urlInput = document.getElementById('videoUrlInput');
         const descInput = document.getElementById('videoDescInput');
         const fitInput = document.getElementById('videoFitInput');
-        const file = fileInput.files[0];
+        const videoUrl = urlInput.value.trim();
 
-        if (!file) return alert('Video seçin!');
+        if (!videoUrl) return alert('Geçerli bir video URL adresi girin!');
 
         const newVideo = {
             id: Date.now(),
-            url: URL.createObjectURL(file),
+            url: videoUrl,
             user: currentUser.username,
             userRole: currentUser.role,
             desc: descInput.value || "Yeni Reels!",
@@ -1080,6 +1118,8 @@
 
         videos.unshift(newVideo);
         saveAndRefresh();
+        urlInput.value = '';
+        descInput.value = '';
         closeModal('uploadModal');
         switchPage('pageHome', document.getElementById('navHomeBtn'));
     }
