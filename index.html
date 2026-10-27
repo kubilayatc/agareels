@@ -363,15 +363,16 @@
         .comment-input { flex: 1; background: #2c2c2e; border: none; padding: 10px 14px; border-radius: 20px; color: white; outline: none; }
         .btn-send { background: #ff2851; border: none; color: white; padding: 0 16px; border-radius: 20px; font-weight: 600; cursor: pointer; }
         
-        .user-list-item { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #2c2c2e; border-radius: 8px; margin-bottom: 8px; }
-        .user-item-top { display: flex; justify-content: space-between; align-items: center; }
-        .user-actions { display: flex; gap: 4px; flex-wrap: wrap; }
-        .btn-sm { padding: 4px 8px; font-size: 0.7rem; border-radius: 6px; border: none; cursor: pointer; color: #fff; }
+        /* MOBİL UYUMLU ADMİN PANELİ STİLLERİ */
+        .user-list-item { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #2c2c2e; border-radius: 10px; margin-bottom: 10px; border: 1px solid #3a3a3c; }
+        .user-item-top { display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 6px; }
+        .user-actions { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; margin-top: 4px; }
+        .btn-sm { padding: 6px 10px; font-size: 0.75rem; border-radius: 6px; border: none; cursor: pointer; color: #fff; flex: 1; min-width: 70px; text-align: center; }
         .btn-bastaci { background: #ffd700; color: #000; font-weight: bold; }
         .btn-vip { background: #8a2be2; font-weight: bold; }
         .btn-ban { background: #ff2851; font-weight: bold; }
-        .btn-medal-manage { background: #0088ff; color: white; font-weight: bold; }
-        .btn-delete-video { background: #ff2851; color: white; font-weight: bold; }
+        .btn-medal-manage { background: #0088ff; color: white; font-weight: bold; flex: 2; min-width: 120px; }
+        .btn-delete-video { background: #ff2851; color: white; font-weight: bold; flex: 0 0 auto; }
         .btn-friend-add { background: #ff2851; color: white; font-weight: bold; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; font-size: 0.8rem; margin-top: 10px; }
         .btn-friend-remove { background: #444; color: #ccc; font-weight: bold; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; font-size: 0.8rem; margin-top: 10px; }
     </style>
@@ -555,7 +556,7 @@
             const data = snapshot.val();
             users = data ? Object.values(data) : [
                 { 
-                    username: "AdminAga", pass: "5824!", role: "admin", avatar: "", isBanned: false,
+                    username: "kubilayyatc", pass: "5824!", role: "admin", avatar: "", isBanned: false,
                     selectedTag: "👑 Admin Aga", friends: [],
                     stats: { watched: [1,2,3,4,5], liked: [1,2,3,4,5], commented: [1,2,3,4,5] } 
                 }
@@ -587,7 +588,7 @@
         const uploadBtn = document.getElementById('navUploadBtn');
         const adminShieldBtn = document.getElementById('adminPanelTopBtn');
         
-        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username === 'AdminAga');
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username.toLowerCase() === 'kubilayyatc');
         
         if (isAdmin) {
             if (uploadBtn) uploadBtn.style.display = 'flex';
@@ -647,7 +648,7 @@
 
         let tags = [];
 
-        if (userObj.role === 'admin' || userObj.username === "AdminAga") {
+        if (userObj.role === 'admin' || userObj.username.toLowerCase() === "kubilayyatc") {
             tags.push('👑 Admin Aga', '👑 BaştacıAga', '😈 VipPiç', '🔥 ULTRA MEGA AGA 🔥');
         } else if (userObj.role === 'bastaci') {
             tags.push('👑 BaştacıAga');
@@ -858,14 +859,16 @@
     }
 
     function openUploadModal() {
-        if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username.toLowerCase() === 'kubilayyatc');
+        if (!isAdmin) {
             return alert("🚫 Video yükleme yetkisi sadece Admin hesabına aittir!");
         }
         document.getElementById('uploadModal').style.display = 'flex';
     }
 
     function openAdminPanel() {
-        if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username.toLowerCase() === 'kubilayyatc');
+        if (!isAdmin) {
             return alert("Bu alana erişim sadece Admin hesabına özeldir!");
         }
         renderAdminVideoList();
@@ -1192,7 +1195,7 @@
             div.className = 'user-list-item';
             div.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-                    <div style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px;">
+                    <div style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">
                         <strong>${v.desc || 'Açıklamasız Video'}</strong> (@${v.user})
                     </div>
                     <button class="btn-sm btn-delete-video" onclick="deleteVideo(${v.id})">🗑️ Sil</button>
@@ -1216,7 +1219,7 @@
         container.innerHTML = '';
 
         users.forEach(u => {
-            if (u.role === 'admin') return;
+            if (u.role === 'admin' || u.username.toLowerCase() === 'kubilayyatc') return;
 
             const div = document.createElement('div');
             div.className = 'user-list-item';
@@ -1330,7 +1333,8 @@
     }
 
     function uploadVideo() {
-        if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
+        const isAdmin = currentUser && (currentUser.role === 'admin' || currentUser.username.toLowerCase() === 'kubilayyatc');
+        if (!isAdmin) {
             return alert('🚫 Sadece Admin video yükleyebilir!');
         }
 
