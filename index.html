@@ -459,7 +459,7 @@
     </div>
 </div>
 
-<!-- Kullanıcı Profil Detay Modalı -->
+<!-- Kullanıcı Profil Detay Modalı (Başka Kullanıcıya Bakarken) -->
 <div class="modal" id="userCardModal">
     <div class="modal-content" style="text-align: center;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -521,7 +521,7 @@
             url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             user: "AdminAga",
             userRole: "admin",
-            desc: "AgaReels Arkadaş Ekleme ve Arama Modülüyle Yayında! 🔥",
+            desc: "AgaReels Profil Güncellemesi ve Hata Düzeltmeleri ile Yayında! 🔥",
             fit: "contain",
             likes: 25,
             isLiked: false,
@@ -653,6 +653,7 @@
         return `<span class="badge ${bgClass}">${tagToDisplay}</span>`;
     }
 
+    // Başka Kullanıcının Profil Kartı (Çıkış yap & Tag seçimi yok)
     function openUserProfileCard(username) {
         const u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
         const cardContent = document.getElementById('userCardContent');
@@ -662,8 +663,11 @@
         } else {
             const avatarBg = u.avatar ? `background-image: url(${u.avatar});` : '';
             const initial = u.avatar ? '' : u.username.charAt(0).toUpperCase();
-            const tags = getUserAvailableTags(u);
             const friendsList = getUserFriends(u);
+            const stats = getUserStats(u);
+            const wCount = (stats.watched || []).length;
+            const lCount = (stats.liked || []).length;
+            const cCount = (stats.commented || []).length;
 
             let isFriend = false;
             let isSelf = false;
@@ -683,6 +687,26 @@
                 }
             }
 
+            const createMedalProgressHTML = (title, count) => {
+                let nextTarget = 75;
+                for (let lvl of MEDAL_LEVELS) {
+                    if (count < lvl.count) { nextTarget = lvl.count; break; }
+                }
+                const pct = Math.min(100, Math.round((count / nextTarget) * 100));
+
+                return `
+                    <div class="medal-card">
+                        <div class="medal-card-header">
+                            <span>${title}</span>
+                            <span style="color:#ffd700;">${count} / ${nextTarget} Reels</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" style="width: ${pct}%;"></div>
+                        </div>
+                    </div>
+                `;
+            };
+
             cardContent.innerHTML = `
                 <div class="profile-avatar-large" style="${avatarBg}">${initial}</div>
                 <h2>@${u.username}</h2>
@@ -692,11 +716,11 @@
                 <div>${getBadgesHTML(u)}</div>
                 ${friendBtnHTML}
                 
-                <div style="background:#2c2c2e; padding:12px; border-radius:12px; text-align:left; margin-top:15px;">
-                    <h4 style="color:#ffd700; font-size:0.8rem; margin-bottom:8px;">🏅 Sahip Olduğu Tüm Unvanlar</h4>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        ${tags.map(t => `<span class="badge badge-aga">${t}</span>`).join('')}
-                    </div>
+                <div class="medals-container" style="margin-top:20px;">
+                    <h4 style="color:#aaa; font-size:0.8rem;">🏆 MADALYA İLERLEMESİ</h4>
+                    ${createMedalProgressHTML("👁️ İzleme Başarımı", wCount)}
+                    ${createMedalProgressHTML("❤️ Beğeni Başarımı", lCount)}
+                    ${createMedalProgressHTML("💬 Yorum Başarımı", cCount)}
                 </div>
             `;
         }
@@ -915,7 +939,6 @@
         videoContainer.innerHTML = '';
         userContainer.innerHTML = '';
 
-        // 1. Kullanıcı/Profil Araması
         const matchedUsers = users.filter(u => u.username.toLowerCase().includes(query));
 
         if (matchedUsers.length > 0 && query !== '') {
@@ -941,7 +964,6 @@
             userContainer.innerHTML = userSectionHTML;
         }
 
-        // 2. Video Araması
         const filteredVideos = videos.filter(v => v.desc.toLowerCase().includes(query) || v.user.toLowerCase().includes(query));
 
         filteredVideos.forEach(v => {
@@ -959,6 +981,7 @@
         });
     }
 
+    // Kendi Profil Sayfan (Tag seçimi ve Çıkış Yap alanı VAR)
     function renderProfilePage() {
         const container = document.getElementById('profileContainer');
         
@@ -1012,11 +1035,12 @@
             };
 
             container.innerHTML = `
-                <div class="profile-avatar-large" style="${avatarBg}">${initial}</div>
-                <label style="background:#333; color:#ccc; font-size:0.75rem; padding:6px 12px; border-radius:12px; cursor:pointer; display:inline-block; margin-bottom:10px;">
+                <div class="profile-avatar-large" id="myProfileAvatar" style="${avatarBg}">${initial}</div>
+                <button style="background:#333; color:#ccc; border:none; font-size:0.75rem; padding:6px 12px; border-radius:12px; cursor:pointer; display:inline-block; margin-bottom:10px;" onclick="document.getElementById('avatarFileInput').click()">
                     📸 Fotoğraf Yükle
-                    <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
-                </label>
+                </button>
+                <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
+
                 <h2>@${currentUser.username}</h2>
                 <div class="friends-counter-badge" onclick="openFriendsList('${currentUser.username}')">
                     👥 ${friendsList.length} Arkadaş
@@ -1084,18 +1108,24 @@
         renderFeed();
     }
 
+    // Düzeltilmiş Profil Fotoğrafı Yükleme Fonksiyonu
     function uploadAvatar(input) {
         const file = input.files[0];
         if (file && currentUser) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                currentUser.avatar = e.target.result;
-                let u = users.find(x => x.username === currentUser.username);
-                if (u) u.avatar = currentUser.avatar;
+                const base64Avatar = e.target.result;
+                currentUser.avatar = base64Avatar;
+
+                let u = users.find(x => x.username.toLowerCase() === currentUser.username.toLowerCase());
+                if (u) u.avatar = base64Avatar;
 
                 localStorage.setItem('agareels_users', JSON.stringify(users));
                 localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+                
                 renderProfilePage();
+                renderFeed();
+                alert("Profil fotoğrafı güncellendi! 🎉");
             };
             reader.readAsDataURL(file);
         }
@@ -1255,7 +1285,7 @@
 
     function addComment() {
         if (!currentUser) return alert("Önce giriş yapmalısın!");
-        if (currentUser.isBanned) return alert("🚫 Banlandınız!");
+        if (currentUser.isBanned) return alert("🚫 Banlandığınız için işlem yapamazsınız!");
 
         const input = document.getElementById('commentInput');
         const text = input.value.trim();
