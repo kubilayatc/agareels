@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>AgaReels - Agalarla Reels Keyfi</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -459,7 +462,7 @@
     </div>
 </div>
 
-<!-- Kullanıcı Profil Detay Modalı (Başka Kullanıcıya Bakarken) -->
+<!-- Kullanıcı Profil Detay Modalı -->
 <div class="modal" id="userCardModal">
     <div class="modal-content" style="text-align: center;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
@@ -515,33 +518,23 @@
 </div>
 
 <script>
-    const initialVideos = [
-        {
-            id: 1,
-            url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-            user: "AdminAga",
-            userRole: "admin",
-            desc: "AgaReels Profil Güncellemesi ve Hata Düzeltmeleri ile Yayında! 🔥",
-            fit: "contain",
-            likes: 25,
-            isLiked: false,
-            comments: []
-        }
-    ];
+    // 1. Firebase Başlatma
+    const firebaseConfig = {
+        apiKey: "AIzaSyDpc2ON0Gs11VCaW649v49zEkwn_njVh-I",
+        authDomain: "agareels-a5264.firebaseapp.com",
+        databaseURL: "https://agareels-a5264-default-rtdb.firebaseio.com",
+        projectId: "agareels-a5264",
+        storageBucket: "agareels-a5264.firebasestorage.app",
+        messagingSenderId: "919846867287",
+        appId: "1:919846867287:web:30e23adfe9f87cace6ae12",
+        measurementId: "G-TF4Y1M2EY4"
+    };
 
-    let users = JSON.parse(localStorage.getItem('agareels_users')) || [
-        { 
-            username: "AdminAga", 
-            pass: "5824!", 
-            role: "admin", 
-            avatar: "", 
-            isBanned: false,
-            selectedTag: "👑 Admin Aga",
-            friends: [],
-            stats: { watched: [1,2,3,4,5], liked: [1,2,3,4,5], commented: [1,2,3,4,5] } 
-        }
-    ];
-    let videos = JSON.parse(localStorage.getItem('agareels_videos')) || initialVideos;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let users = [];
+    let videos = [];
     let currentUser = JSON.parse(localStorage.getItem('agareels_current_user')) || null;
 
     let activeVideoId = null;
@@ -556,11 +549,51 @@
     ];
 
     window.onload = function() {
-        renderFeed();
-        renderSearch();
-        renderProfilePage();
-        setupScrollObserver();
+        // Firebase Canlı Dinleyicileri
+        db.ref('users').on('value', snapshot => {
+            const data = snapshot.val();
+            users = data ? Object.values(data) : [
+                { 
+                    username: "AdminAga", pass: "5824!", role: "admin", avatar: "", isBanned: false,
+                    selectedTag: "👑 Admin Aga", friends: [],
+                    stats: { watched: [1,2,3,4,5], liked: [1,2,3,4,5], commented: [1,2,3,4,5] } 
+                }
+            ];
+            if (currentUser) {
+                let updatedSelf = users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
+                if (updatedSelf) {
+                    currentUser = updatedSelf;
+                    localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+                }
+            }
+            renderProfilePage();
+            renderFeed();
+        });
+
+        db.ref('videos').on('value', snapshot => {
+            const data = snapshot.val();
+            videos = data ? Object.values(data) : [];
+            renderFeed();
+            renderSearch();
+            setupScrollObserver();
+        });
     };
+
+    function syncUsersToFirebase() {
+        const usersObj = {};
+        users.forEach(u => {
+            usersObj[u.username.toLowerCase()] = u;
+        });
+        db.ref('users').set(usersObj);
+    }
+
+    function syncVideosToFirebase() {
+        const videosObj = {};
+        videos.forEach(v => {
+            videosObj[v.id] = v;
+        });
+        db.ref('videos').set(videosObj);
+    }
 
     function toggleMuteAll() {
         isGlobalMuted = !isGlobalMuted;
@@ -653,7 +686,6 @@
         return `<span class="badge ${bgClass}">${tagToDisplay}</span>`;
     }
 
-    // Başka Kullanıcının Profil Kartı (Çıkış yap & Tag seçimi yok)
     function openUserProfileCard(username) {
         const u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
         const cardContent = document.getElementById('userCardContent');
@@ -730,8 +762,8 @@
     function toggleFriend(targetUsername) {
         if (!currentUser) return alert("Arkadaş eklemek için giriş yapmalısınız!");
 
-        let myObj = users.find(x => x.username === currentUser.username);
-        let targetObj = users.find(x => x.username === targetUsername);
+        let myObj = users.find(x => x.username.toLowerCase() === currentUser.username.toLowerCase());
+        let targetObj = users.find(x => x.username.toLowerCase() === targetUsername.toLowerCase());
 
         if (!myObj || !targetObj) return;
 
@@ -748,12 +780,8 @@
             alert(`@${targetUsername} ile arkadaş olundu! 🎉`);
         }
 
-        currentUser.friends = myObj.friends;
-        localStorage.setItem('agareels_users', JSON.stringify(users));
-        localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-
+        syncUsersToFirebase();
         openUserProfileCard(targetUsername);
-        renderProfilePage();
     }
 
     function openFriendsList(username) {
@@ -772,7 +800,7 @@
             container.innerHTML = `<p style="color:#888; text-align:center; padding:15px;">Henüz arkadaşı yok.</p>`;
         } else {
             friends.forEach(fUsername => {
-                const fObj = users.find(x => x.username === fUsername) || { username: fUsername };
+                const fObj = users.find(x => x.username.toLowerCase() === fUsername.toLowerCase()) || { username: fUsername };
                 const avatarStyle = fObj.avatar ? `background-image: url(${fObj.avatar});` : '';
                 const initial = fObj.avatar ? '' : fUsername.charAt(0).toUpperCase();
 
@@ -839,7 +867,7 @@
             card.className = 'reel-card';
             card.dataset.id = video.id;
 
-            const videoUserObj = users.find(u => u.username === video.user) || { username: video.user, role: video.userRole };
+            const videoUserObj = users.find(u => u.username.toLowerCase() === video.user.toLowerCase()) || { username: video.user, role: video.userRole };
             const fitClass = video.fit === 'contain' ? 'fit-contain' : '';
 
             card.innerHTML = `
@@ -848,11 +876,11 @@
                 <div class="side-bar">
                     <button class="action-btn" onclick="toggleLike(${video.id})">
                         <i class="fa-solid fa-heart ${video.isLiked ? 'active' : ''}"></i>
-                        <span>${video.likes}</span>
+                        <span>${video.likes || 0}</span>
                     </button>
                     <button class="action-btn" onclick="openCommentsModal(${video.id})">
                         <i class="fa-solid fa-comment"></i>
-                        <span>${video.comments.length}</span>
+                        <span>${video.comments ? video.comments.length : 0}</span>
                     </button>
                 </div>
 
@@ -899,15 +927,15 @@
 
     function recordStat(type, videoId) {
         if (!currentUser) return;
-        let u = users.find(x => x.username === currentUser.username);
+        let u = users.find(x => x.username.toLowerCase() === currentUser.username.toLowerCase());
         if (!u) return;
 
         let stats = getUserStats(u);
+        stats[type] = stats[type] || [];
         if (!stats[type].includes(videoId)) {
             stats[type].push(videoId);
-            currentUser.stats = stats;
-            localStorage.setItem('agareels_users', JSON.stringify(users));
-            localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+            u.stats = stats;
+            syncUsersToFirebase();
         }
     }
 
@@ -923,9 +951,9 @@
         const video = videos.find(v => v.id === id);
         if (video) {
             video.isLiked = !video.isLiked;
-            video.likes += video.isLiked ? 1 : -1;
+            video.likes = (video.likes || 0) + (video.isLiked ? 1 : -1);
             if (video.isLiked) recordStat('liked', id);
-            saveAndRefresh();
+            syncVideosToFirebase();
         }
     }
 
@@ -981,7 +1009,6 @@
         });
     }
 
-    // Kendi Profil Sayfan (Tag seçimi ve Çıkış Yap alanı VAR)
     function renderProfilePage() {
         const container = document.getElementById('profileContainer');
         
@@ -1071,14 +1098,10 @@
     function changeSelectedTag(newTag) {
         if (!currentUser) return;
         currentUser.selectedTag = newTag;
-        let u = users.find(x => x.username === currentUser.username);
+        let u = users.find(x => x.username.toLowerCase() === currentUser.username.toLowerCase());
         if (u) u.selectedTag = newTag;
 
-        localStorage.setItem('agareels_users', JSON.stringify(users));
-        localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-        
-        renderProfilePage();
-        renderFeed();
+        syncUsersToFirebase();
     }
 
     function handleAuth() {
@@ -1100,7 +1123,7 @@
             };
             users.push(newUser);
             currentUser = newUser;
-            localStorage.setItem('agareels_users', JSON.stringify(users));
+            syncUsersToFirebase();
         }
 
         localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
@@ -1108,7 +1131,6 @@
         renderFeed();
     }
 
-    // Düzeltilmiş Profil Fotoğrafı Yükleme Fonksiyonu
     function uploadAvatar(input) {
         const file = input.files[0];
         if (file && currentUser) {
@@ -1120,11 +1142,7 @@
                 let u = users.find(x => x.username.toLowerCase() === currentUser.username.toLowerCase());
                 if (u) u.avatar = base64Avatar;
 
-                localStorage.setItem('agareels_users', JSON.stringify(users));
-                localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-                
-                renderProfilePage();
-                renderFeed();
+                syncUsersToFirebase();
                 alert("Profil fotoğrafı güncellendi! 🎉");
             };
             reader.readAsDataURL(file);
@@ -1165,7 +1183,7 @@
     function deleteVideo(videoId) {
         if (confirm("Bu videoyu silmek istediğinize emin misiniz?")) {
             videos = videos.filter(v => v.id !== videoId);
-            saveAndRefresh();
+            db.ref('videos/' + videoId).remove();
             renderAdminVideoList();
             alert("Video başarıyla silindi!");
         }
@@ -1197,7 +1215,7 @@
     }
 
     function manageUserMedals(username) {
-        let u = users.find(x => x.username === username);
+        let u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
         if (!u) return;
 
         const choice = prompt(`@${username} kullanıcısı için Madalya Seviyesi belirleyin:\n1: 🥉 Bronz (5 Reels)\n2: 🥈 Gümüş (15 Reels)\n3: 🥇 Altın (30 Reels)\n4: 💎 Elmas (50 Reels)\n5: 🔻 Yakut (75 Reels)\n6: 🔥 ULTRA MEGA AGA (Full)\n0: Madalyaları Sıfırla`);
@@ -1215,36 +1233,23 @@
         let newArr = Array.from({length: targetVal}, (_, i) => i + 1);
         u.stats = { watched: [...newArr], liked: [...newArr], commented: [...newArr] };
 
-        localStorage.setItem('agareels_users', JSON.stringify(users));
-        if (currentUser && currentUser.username === username) {
-            currentUser.stats = u.stats;
-            localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-        }
-
-        renderAdminUserList();
-        renderFeed();
+        syncUsersToFirebase();
         alert(`@${username} kullanıcısının madalyaları güncellendi!`);
     }
 
     function setUserRole(username, role) {
-        let u = users.find(x => x.username === username);
+        let u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
         if (u) {
             u.role = u.role === role ? 'aga' : role;
-            localStorage.setItem('agareels_users', JSON.stringify(users));
-            if (currentUser && currentUser.username === username) currentUser.role = u.role;
-            renderAdminUserList();
-            renderFeed();
+            syncUsersToFirebase();
         }
     }
 
     function toggleBan(username) {
-        let u = users.find(x => x.username === username);
+        let u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
         if (u) {
             u.isBanned = !u.isBanned;
-            localStorage.setItem('agareels_users', JSON.stringify(users));
-            if (currentUser && currentUser.username === username && u.isBanned) logout();
-            renderAdminUserList();
-            renderFeed();
+            syncUsersToFirebase();
         }
     }
 
@@ -1259,13 +1264,13 @@
         const list = document.getElementById('commentsList');
         list.innerHTML = '';
 
-        if (!video || video.comments.length === 0) {
+        if (!video || !video.comments || video.comments.length === 0) {
             list.innerHTML = '<div style="color:#666; text-align:center; padding:15px;">İlk yorumu sen yaz!</div>';
             return;
         }
 
         video.comments.forEach(c => {
-            const commentUserObj = users.find(u => u.username === c.user) || { username: c.user, role: c.role };
+            const commentUserObj = users.find(u => u.username.toLowerCase() === c.user.toLowerCase()) || { username: c.user, role: c.role };
             const avatarStyle = c.avatar ? `background-image: url(${c.avatar});` : '';
             const initial = c.avatar ? '' : c.user.charAt(0).toUpperCase();
 
@@ -1292,12 +1297,13 @@
 
         if (text && activeVideoId) {
             const video = videos.find(v => v.id === activeVideoId);
+            video.comments = video.comments || [];
             video.comments.push({ user: currentUser.username, role: currentUser.role, avatar: currentUser.avatar || '', text: text });
             input.value = '';
             
             recordStat('commented', activeVideoId);
             renderComments();
-            saveAndRefresh();
+            syncVideosToFirebase();
         }
     }
 
@@ -1324,7 +1330,8 @@
         };
 
         videos.unshift(newVideo);
-        saveAndRefresh();
+        syncVideosToFirebase();
+
         urlInput.value = '';
         descInput.value = '';
         closeModal('uploadModal');
@@ -1332,11 +1339,6 @@
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-    function saveAndRefresh() {
-        localStorage.setItem('agareels_videos', JSON.stringify(videos));
-        renderFeed();
-        setupScrollObserver();
-    }
 </script>
 </body>
 </html>
