@@ -354,7 +354,7 @@
                 <div class="brand"><i class="fa-solid fa-play-circle"></i> AgaReels</div>
                 <div class="header-btn-group">
                     <button class="btn-icon-top" id="muteToggleBtn" onclick="toggleMuteAll()"><i class="fa-solid fa-volume-xmark" style="color:#ff2851;"></i></button>
-                    <button class="btn-icon-top" onclick="checkAdminAuth()"><i class="fa-solid fa-shield-halved"></i></button>
+                    <button class="btn-icon-top" onclick="openAdminPanel()"><i class="fa-solid fa-shield-halved"></i></button>
                 </div>
             </div>
             <div class="reels-feed" id="reelsFeed"></div>
@@ -388,13 +388,40 @@
             <i class="fa-solid fa-magnifying-glass"></i>
             <span>Arama</span>
         </button>
-        <button class="nav-item" onclick="openUploadFromNav()">
+        <button class="nav-item" onclick="openUploadModal()">
             <div class="nav-item-plus"><i class="fa-solid fa-plus"></i></div>
         </button>
         <button class="nav-item" id="navProfileBtn" onclick="switchPage('pageProfile', this)">
             <i class="fa-solid fa-user"></i>
             <span>Profil</span>
         </button>
+    </div>
+</div>
+
+<!-- Video Yükleme Modalı -->
+<div class="modal" id="uploadModal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3>Video Yükle 🎬</h3>
+            <button style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;" onclick="closeModal('uploadModal')">&times;</button>
+        </div>
+        
+        <div class="form-group">
+            <label>Video Seç (MP4)</label>
+            <input type="file" id="videoFileInput" accept="video/*" class="form-input">
+        </div>
+        <div class="form-group">
+            <label>Video Görünüm Modu</label>
+            <select id="videoFitInput" class="form-select">
+                <option value="contain">🖼️ Sığdır (Kırpma yok, tam görünüm)</option>
+                <option value="cover">📱 Tam Ekran Doldur (Dikey videolar için)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <input type="text" id="videoDescInput" class="form-input" placeholder="Agalara özel mesaj...">
+        </div>
+        <button class="btn-primary" onclick="uploadVideo()">Videoyu Yayınla</button>
     </div>
 </div>
 
@@ -413,33 +440,13 @@
     </div>
 </div>
 
-<!-- Admin Modalı -->
+<!-- Admin Yönetim Paneli Modalı -->
 <div class="modal" id="adminModal">
     <div class="modal-content">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <h3 style="color:#ff2851;">Admin Paneli 🔥</h3>
+            <h3 style="color:#ff2851;">Admin Yönetim Paneli 🔥</h3>
             <button style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;" onclick="closeModal('adminModal')">&times;</button>
         </div>
-        
-        <h4 style="margin-bottom: 10px;">Video Yükle</h4>
-        <div class="form-group">
-            <label>Video Seç (MP4)</label>
-            <input type="file" id="videoFileInput" accept="video/*" class="form-input">
-        </div>
-        <div class="form-group">
-            <label>Video Görünüm Modu</label>
-            <select id="videoFitInput" class="form-select">
-                <option value="contain">🖼️ Sığdır (Kırpma yok, tam görünüm)</option>
-                <option value="cover">📱 Tam Ekran Doldur (Dikey videolar için)</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Açıklama</label>
-            <input type="text" id="videoDescInput" class="form-input" placeholder="Agalara özel mesaj...">
-        </div>
-        <button class="btn-primary" onclick="uploadVideo()">Videoyu Yayınla</button>
-
-        <hr style="border-color: #333; margin: 20px 0;">
 
         <h4 style="margin-bottom: 10px; color: #ff2851;">🎬 Yüklü Videoları Yönet & Sil</h4>
         <div id="adminVideosListContainer" style="margin-bottom: 20px;"></div>
@@ -458,7 +465,7 @@
             url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             user: "AdminAga",
             userRole: "admin",
-            desc: "AgaReels Video Görünüm Modu Özelliğiyle Güncellendi! 🔥",
+            desc: "AgaReels Tekli Tag Seçimi ve Oturum Yönetimi ile Yayında! 🔥",
             fit: "contain",
             likes: 25,
             isLiked: false,
@@ -473,11 +480,12 @@
             role: "admin", 
             avatar: "", 
             isBanned: false,
+            selectedTag: "👑 Admin Aga",
             stats: { watched: [1,2,3,4,5], liked: [1,2,3,4,5], commented: [1,2,3,4,5] } 
         }
     ];
     let videos = JSON.parse(localStorage.getItem('agareels_videos')) || initialVideos;
-    let currentUser = JSON.parse(localStorage.getItem('agareels_current_user')) || users[0];
+    let currentUser = JSON.parse(localStorage.getItem('agareels_current_user')) || null;
 
     let activeVideoId = null;
     let isGlobalMuted = true;
@@ -519,23 +527,22 @@
         return userObj.stats;
     }
 
-    function getBadgesHTML(userObj) {
-        if (!userObj) return '';
-        if (userObj.isBanned) return '<span class="badge badge-banned">🚫 BANLI</span>';
+    // Kullanıcının Sahip Olduğu Tüm Tag'lerin Listesi
+    function getUserAvailableTags(userObj) {
+        if (!userObj) return [];
+        if (userObj.isBanned) return ['🚫 BANLI'];
 
-        let html = '';
+        let tags = [];
 
         if (userObj.role === 'admin' || userObj.username === "AdminAga") {
-            html += '<span class="badge badge-admin">👑 Admin Aga</span>';
-            html += '<span class="badge badge-bastaci">👑 BaştacıAga</span>';
-            html += '<span class="badge badge-vip">😈 VipPiç</span>';
-            html += '<span class="badge badge-ultra">🔥 ULTRA MEGA AGA 🔥</span>';
-            return html;
+            tags.push('👑 Admin Aga', '👑 BaştacıAga', '😈 VipPiç', '🔥 ULTRA MEGA AGA 🔥');
+        } else if (userObj.role === 'bastaci') {
+            tags.push('👑 BaştacıAga');
+        } else if (userObj.role === 'vip') {
+            tags.push('😈 VipPiç');
+        } else {
+            tags.push('🤡 Küçük31ci');
         }
-
-        if (userObj.role === 'bastaci') html += '<span class="badge badge-bastaci">👑 BaştacıAga</span>';
-        else if (userObj.role === 'vip') html += '<span class="badge badge-vip">😈 VipPiç</span>';
-        else html += '<span class="badge badge-aga">🤡 Küçük31ci</span>';
 
         const stats = getUserStats(userObj);
         const wCount = (stats.watched || []).length;
@@ -543,8 +550,7 @@
         const cCount = (stats.commented || []).length;
 
         if (wCount >= 75 && lCount >= 75 && cCount >= 75) {
-            html += '<span class="badge badge-ultra">🔥 ULTRA MEGA AGA 🔥</span>';
-            return html;
+            if (!tags.includes('🔥 ULTRA MEGA AGA 🔥')) tags.push('🔥 ULTRA MEGA AGA 🔥');
         }
 
         const getTier = (cnt, type) => {
@@ -559,11 +565,32 @@
         const lMedal = getTier(lCount, "Beğenici");
         const cMedal = getTier(cCount, "Yorumcu");
 
-        if (wMedal) html += `<span class="badge badge-aga">${wMedal}</span>`;
-        if (lMedal) html += `<span class="badge badge-aga">${lMedal}</span>`;
-        if (cMedal) html += `<span class="badge badge-aga">${cMedal}</span>`;
+        if (wMedal) tags.push(wMedal);
+        if (lMedal) tags.push(lMedal);
+        if (cMedal) tags.push(cMedal);
 
-        return html;
+        return tags;
+    }
+
+    // Kullanıcının Ekranda Görünecek TEK TAG'ini Getirir
+    function getBadgesHTML(userObj) {
+        if (!userObj) return '';
+        if (userObj.isBanned) return '<span class="badge badge-banned">🚫 BANLI</span>';
+
+        const availableTags = getUserAvailableTags(userObj);
+        let tagToDisplay = userObj.selectedTag;
+
+        if (!tagToDisplay || !availableTags.includes(tagToDisplay)) {
+            tagToDisplay = availableTags[0] || '🤡 Küçük31ci';
+        }
+
+        let bgClass = 'badge-aga';
+        if (tagToDisplay.includes('Admin')) bgClass = 'badge-admin';
+        else if (tagToDisplay.includes('Baştacı')) bgClass = 'badge-bastaci';
+        else if (tagToDisplay.includes('Vip')) bgClass = 'badge-vip';
+        else if (tagToDisplay.includes('ULTRA')) bgClass = 'badge-ultra';
+
+        return `<span class="badge ${bgClass}">${tagToDisplay}</span>`;
     }
 
     function switchPage(pageId, btnEl) {
@@ -577,7 +604,20 @@
         if (pageId === 'pageSearch') renderSearch();
     }
 
-    function openUploadFromNav() { checkAdminAuth(); }
+    function openUploadModal() {
+        if (!currentUser) return alert("Video yüklemek için önce profil sayfasından giriş yapmalısın!");
+        if (currentUser.isBanned) return alert("🚫 Banlandığınız için video yükleyemezsiniz!");
+        document.getElementById('uploadModal').style.display = 'flex';
+    }
+
+    function openAdminPanel() {
+        if (!currentUser || (currentUser.role !== 'admin' && currentUser.username !== 'AdminAga')) {
+            return alert("Bu alana erişim sadece Admin hesabına özeldir! Profil sayfasından Admin hesabıyla giriş yapın.");
+        }
+        renderAdminVideoList();
+        renderAdminUserList();
+        document.getElementById('adminModal').style.display = 'flex';
+    }
 
     function renderFeed() {
         const feed = document.getElementById('reelsFeed');
@@ -671,7 +711,9 @@
     }
 
     function toggleLike(id) {
-        if (currentUser && currentUser.isBanned) return alert("🚫 Banlandığınız için işlem yapamazsınız!");
+        if (!currentUser) return alert("Beğenmek için önce giriş yapmalısınız!");
+        if (currentUser.isBanned) return alert("🚫 Banlandığınız için işlem yapamazsınız!");
+        
         const video = videos.find(v => v.id === id);
         if (video) {
             video.isLiked = !video.isLiked;
@@ -711,7 +753,7 @@
         if (!currentUser) {
             container.innerHTML = `
                 <h3>Giriş Yap veya Kaydol</h3>
-                <p style="color:#888; margin-bottom:20px; font-size:0.85rem;">AgaReels klanına katılmak ve madalyaları toplamak için hesap oluştur!</p>
+                <p style="color:#888; margin-bottom:20px; font-size:0.85rem;">AgaReels klanına katılmak ve unvan kazanmak için giriş yap!</p>
                 <div class="form-group">
                     <label>Kullanıcı Adı</label>
                     <input type="text" id="authUsername" class="form-input" placeholder="Kullanıcı adın">
@@ -730,6 +772,12 @@
 
             const avatarBg = currentUser.avatar ? `background-image: url(${currentUser.avatar});` : '';
             const initial = currentUser.avatar ? '' : currentUser.username.charAt(0).toUpperCase();
+
+            // Unvan Seçim Menüsü Oluştur
+            const availableTags = getUserAvailableTags(currentUser);
+            let selectOptionsHTML = availableTags.map(t => 
+                `<option value="${t}" ${currentUser.selectedTag === t ? 'selected' : ''}>${t}</option>`
+            ).join('');
 
             const createMedalProgressHTML = (title, count) => {
                 let nextTarget = 75;
@@ -762,6 +810,13 @@
                     ${getBadgesHTML(currentUser)}
                 </div>
 
+                <div class="form-group" style="margin-top:15px;">
+                    <label style="color:#ffd700; font-weight:bold;">🏷️ Ekranınızda Görünecek Tag'i Seçin:</label>
+                    <select class="form-select" onchange="changeSelectedTag(this.value)">
+                        ${selectOptionsHTML}
+                    </select>
+                </div>
+
                 <div class="medals-container">
                     <h4 style="color:#aaa; font-size:0.8rem; margin-top:5px;">🏆 MADALYA İLERLEMESİ</h4>
                     ${createMedalProgressHTML("👁️ İzleme Başarımı", wCount)}
@@ -772,6 +827,19 @@
                 <button class="btn-primary" style="background:#333; margin-top:20px;" onclick="logout()">Çıkış Yap</button>
             `;
         }
+    }
+
+    function changeSelectedTag(newTag) {
+        if (!currentUser) return;
+        currentUser.selectedTag = newTag;
+        let u = users.find(x => x.username === currentUser.username);
+        if (u) u.selectedTag = newTag;
+
+        localStorage.setItem('agareels_users', JSON.stringify(users));
+        localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+        
+        renderProfilePage();
+        renderFeed();
     }
 
     function handleAuth() {
@@ -788,7 +856,7 @@
             else return alert("Hatalı şifre!");
         } else {
             let newUser = { 
-                username: u, pass: p, role: "aga", avatar: "", isBanned: false,
+                username: u, pass: p, role: "aga", avatar: "", isBanned: false, selectedTag: "🤡 Küçük31ci",
                 stats: { watched: [], liked: [], commented: [] }
             };
             users.push(newUser);
@@ -798,6 +866,7 @@
 
         localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
         renderProfilePage();
+        renderFeed();
     }
 
     function uploadAvatar(input) {
@@ -821,20 +890,7 @@
         currentUser = null;
         localStorage.removeItem('agareels_current_user');
         renderProfilePage();
-    }
-
-    function checkAdminAuth() {
-        const pass = prompt("Admin Şifresini Giriniz:");
-        if (pass === "5824!") {
-            let adminObj = users.find(x => x.username === "AdminAga");
-            if (adminObj) {
-                currentUser = adminObj;
-                localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
-            }
-            renderAdminVideoList();
-            renderAdminUserList();
-            document.getElementById('adminModal').style.display = 'flex';
-        } else if(pass !== null) alert("Hatalı Admin Şifresi!");
+        renderFeed();
     }
 
     function renderAdminVideoList() {
@@ -852,7 +908,7 @@
             div.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
                     <div style="font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px;">
-                        <strong>${v.desc || 'Açıklamasız Video'}</strong>
+                        <strong>${v.desc || 'Açıklamasız Video'}</strong> (@${v.user})
                     </div>
                     <button class="btn-sm btn-delete-video" onclick="deleteVideo(${v.id})">🗑️ Sil</button>
                 </div>
@@ -1001,6 +1057,8 @@
     }
 
     function uploadVideo() {
+        if (!currentUser) return alert('Giriş yapmalısınız!');
+
         const fileInput = document.getElementById('videoFileInput');
         const descInput = document.getElementById('videoDescInput');
         const fitInput = document.getElementById('videoFitInput');
@@ -1011,8 +1069,8 @@
         const newVideo = {
             id: Date.now(),
             url: URL.createObjectURL(file),
-            user: "AdminAga",
-            userRole: "admin",
+            user: currentUser.username,
+            userRole: currentUser.role,
             desc: descInput.value || "Yeni Reels!",
             fit: fitInput.value || "contain",
             likes: 0,
@@ -1022,7 +1080,7 @@
 
         videos.unshift(newVideo);
         saveAndRefresh();
-        closeModal('adminModal');
+        closeModal('uploadModal');
         switchPage('pageHome', document.getElementById('navHomeBtn'));
     }
 
