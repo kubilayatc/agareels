@@ -115,6 +115,7 @@
             overflow-y: scroll;
             scroll-snap-type: y mandatory;
             scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
         }
         .reels-feed::-webkit-scrollbar { display: none; }
         .reel-card {
@@ -520,7 +521,7 @@
 </div>
 
 <script>
-    // Firebase Bağlantısı
+    // Firebase Bağlantısı (databaseURL Eklendi)
     const firebaseConfig = {
         apiKey: "AIzaSyDpc2ON0Gs11VCaW649v49zEkwn_njVh-I",
         authDomain: "agareels-a5264.firebaseapp.com",
@@ -894,7 +895,7 @@
             const fitClass = video.fit === 'contain' ? 'fit-contain' : '';
 
             card.innerHTML = `
-                <video src="${video.url}" class="${fitClass}" loop playsinline muted onclick="togglePlay(this)"></video>
+                <video src="${video.url}" class="${fitClass}" loop playsinline webkit-playsinline muted onclick="togglePlay(this)"></video>
                 
                 <div class="side-bar">
                     <button class="action-btn" onclick="toggleLike(${video.id})">
