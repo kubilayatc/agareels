@@ -277,6 +277,7 @@
             transition: width 0.3s;
         }
 
+        /* Arama Sayfası Stilleri */
         .search-header { padding: 15px; border-bottom: 1px solid #222; }
         .search-input-box {
             background: #1c1c1e;
@@ -287,7 +288,20 @@
             gap: 10px;
         }
         .search-input-box input { background: none; border: none; color: white; outline: none; width: 100%; }
-        .search-results { padding: 15px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .search-section-title { font-size: 0.85rem; color: #ff2851; font-weight: bold; margin: 15px 15px 5px 15px; }
+        .user-search-list { padding: 0 15px; display: flex; flex-direction: column; gap: 8px; }
+        .user-search-card {
+            background: #1c1c1e;
+            padding: 10px 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            border: 1px solid #2c2c2e;
+        }
+        .user-search-info { display: flex; align-items: center; gap: 10px; }
+        .search-results { padding: 0 15px 15px 15px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         .search-card {
             background: #111;
             border-radius: 10px;
@@ -309,6 +323,20 @@
             display: flex; align-items: center; justify-content: center;
             font-size: 2.5rem; font-weight: bold; background-size: cover; background-position: center;
             border: 2px solid #ff2851;
+        }
+        .friends-counter-badge {
+            background: #2c2c2e;
+            color: #ffd700;
+            font-size: 0.8rem;
+            font-weight: bold;
+            padding: 6px 14px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            margin: 8px 0;
+            border: 1px solid #444;
         }
         .form-group { margin-bottom: 15px; text-align: left; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #aaa; }
@@ -341,6 +369,8 @@
         .btn-ban { background: #ff2851; font-weight: bold; }
         .btn-medal-manage { background: #0088ff; color: white; font-weight: bold; }
         .btn-delete-video { background: #ff2851; color: white; font-weight: bold; }
+        .btn-friend-add { background: #ff2851; color: white; font-weight: bold; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; font-size: 0.8rem; margin-top: 10px; }
+        .btn-friend-remove { background: #444; color: #ccc; font-weight: bold; padding: 8px 16px; border-radius: 20px; border: none; cursor: pointer; font-size: 0.8rem; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -369,6 +399,9 @@
                     <input type="text" id="searchInput" placeholder="Reels veya aga ara..." oninput="filterSearch()">
                 </div>
             </div>
+            
+            <div id="userSearchResultsContainer"></div>
+            <div class="search-section-title" id="reelsSearchTitle">🎬 REELS VİDEOLARI</div>
             <div class="search-results" id="searchResults"></div>
         </div>
 
@@ -437,6 +470,17 @@
     </div>
 </div>
 
+<!-- Arkadaş Listesi Modalı -->
+<div class="modal" id="friendsListModal">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <h3 id="friendsModalTitle">Arkadaşlar</h3>
+            <button style="background:none; border:none; color:#888; font-size:1.2rem; cursor:pointer;" onclick="closeModal('friendsListModal')">&times;</button>
+        </div>
+        <div id="friendsListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+</div>
+
 <!-- Yorumlar Modalı -->
 <div class="modal" id="commentsModal">
     <div class="modal-content">
@@ -477,7 +521,7 @@
             url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
             user: "AdminAga",
             userRole: "admin",
-            desc: "AgaReels Kullanıcı Profili İnceleme ve URL Video Desteği ile Güncellendi! 🔥",
+            desc: "AgaReels Arkadaş Ekleme ve Arama Modülüyle Yayında! 🔥",
             fit: "contain",
             likes: 25,
             isLiked: false,
@@ -493,6 +537,7 @@
             avatar: "", 
             isBanned: false,
             selectedTag: "👑 Admin Aga",
+            friends: [],
             stats: { watched: [1,2,3,4,5], liked: [1,2,3,4,5], commented: [1,2,3,4,5] } 
         }
     ];
@@ -537,6 +582,11 @@
     function getUserStats(userObj) {
         if (!userObj || !userObj.stats) return { watched: [], liked: [], commented: [] };
         return userObj.stats;
+    }
+
+    function getUserFriends(userObj) {
+        if (!userObj || !userObj.friends) return [];
+        return userObj.friends;
     }
 
     function getUserAvailableTags(userObj) {
@@ -613,15 +663,36 @@
             const avatarBg = u.avatar ? `background-image: url(${u.avatar});` : '';
             const initial = u.avatar ? '' : u.username.charAt(0).toUpperCase();
             const tags = getUserAvailableTags(u);
+            const friendsList = getUserFriends(u);
+
+            let isFriend = false;
+            let isSelf = false;
+
+            if (currentUser) {
+                if (currentUser.username.toLowerCase() === u.username.toLowerCase()) isSelf = true;
+                const myFriends = getUserFriends(currentUser);
+                if (myFriends.includes(u.username)) isFriend = true;
+            }
+
+            let friendBtnHTML = '';
+            if (!isSelf) {
+                if (isFriend) {
+                    friendBtnHTML = `<button class="btn-friend-remove" onclick="toggleFriend('${u.username}')">➖ Arkadaşlıktan Çıkar</button>`;
+                } else {
+                    friendBtnHTML = `<button class="btn-friend-add" onclick="toggleFriend('${u.username}')">➕ Arkadaş Ekle</button>`;
+                }
+            }
 
             cardContent.innerHTML = `
                 <div class="profile-avatar-large" style="${avatarBg}">${initial}</div>
-                <h2 style="margin-bottom:8px;">@${u.username}</h2>
-                <div style="margin-bottom:15px;">
-                    <label style="font-size:0.75rem; color:#888;">Aktif Unvanı:</label><br>
-                    ${getBadgesHTML(u)}
+                <h2>@${u.username}</h2>
+                <div class="friends-counter-badge" onclick="openFriendsList('${u.username}')">
+                    👥 ${friendsList.length} Arkadaş
                 </div>
-                <div style="background:#2c2c2e; padding:12px; border-radius:12px; text-align:left;">
+                <div>${getBadgesHTML(u)}</div>
+                ${friendBtnHTML}
+                
+                <div style="background:#2c2c2e; padding:12px; border-radius:12px; text-align:left; margin-top:15px;">
                     <h4 style="color:#ffd700; font-size:0.8rem; margin-bottom:8px;">🏅 Sahip Olduğu Tüm Unvanlar</h4>
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
                         ${tags.map(t => `<span class="badge badge-aga">${t}</span>`).join('')}
@@ -630,6 +701,78 @@
             `;
         }
         document.getElementById('userCardModal').style.display = 'flex';
+    }
+
+    function toggleFriend(targetUsername) {
+        if (!currentUser) return alert("Arkadaş eklemek için giriş yapmalısınız!");
+
+        let myObj = users.find(x => x.username === currentUser.username);
+        let targetObj = users.find(x => x.username === targetUsername);
+
+        if (!myObj || !targetObj) return;
+
+        myObj.friends = myObj.friends || [];
+        targetObj.friends = targetObj.friends || [];
+
+        if (myObj.friends.includes(targetUsername)) {
+            myObj.friends = myObj.friends.filter(f => f !== targetUsername);
+            targetObj.friends = targetObj.friends.filter(f => f !== myObj.username);
+            alert(`@${targetUsername} arkadaş listenizden çıkarıldı.`);
+        } else {
+            myObj.friends.push(targetUsername);
+            if (!targetObj.friends.includes(myObj.username)) targetObj.friends.push(myObj.username);
+            alert(`@${targetUsername} ile arkadaş olundu! 🎉`);
+        }
+
+        currentUser.friends = myObj.friends;
+        localStorage.setItem('agareels_users', JSON.stringify(users));
+        localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+
+        openUserProfileCard(targetUsername);
+        renderProfilePage();
+    }
+
+    function openFriendsList(username) {
+        const u = users.find(x => x.username.toLowerCase() === username.toLowerCase());
+        const container = document.getElementById('friendsListContainer');
+        const title = document.getElementById('friendsModalTitle');
+
+        if (!u) return;
+
+        title.innerText = `@${u.username} - Arkadaşlar`;
+        container.innerHTML = '';
+
+        const friends = getUserFriends(u);
+
+        if (friends.length === 0) {
+            container.innerHTML = `<p style="color:#888; text-align:center; padding:15px;">Henüz arkadaşı yok.</p>`;
+        } else {
+            friends.forEach(fUsername => {
+                const fObj = users.find(x => x.username === fUsername) || { username: fUsername };
+                const avatarStyle = fObj.avatar ? `background-image: url(${fObj.avatar});` : '';
+                const initial = fObj.avatar ? '' : fUsername.charAt(0).toUpperCase();
+
+                const div = document.createElement('div');
+                div.className = 'user-search-card';
+                div.onclick = () => {
+                    closeModal('friendsListModal');
+                    openUserProfileCard(fUsername);
+                };
+                div.innerHTML = `
+                    <div class="user-search-info">
+                        <div class="avatar" style="${avatarStyle}">${initial}</div>
+                        <div>
+                            <strong>@${fUsername}</strong>
+                            <div>${getBadgesHTML(fObj)}</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right" style="color:#666;"></i>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        document.getElementById('friendsListModal').style.display = 'flex';
     }
 
     function switchPage(pageId, btnEl) {
@@ -765,13 +908,43 @@
     function renderSearch() { filterSearch(); }
 
     function filterSearch() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const container = document.getElementById('searchResults');
-        container.innerHTML = '';
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const videoContainer = document.getElementById('searchResults');
+        const userContainer = document.getElementById('userSearchResultsContainer');
 
-        const filtered = videos.filter(v => v.desc.toLowerCase().includes(query) || v.user.toLowerCase().includes(query));
+        videoContainer.innerHTML = '';
+        userContainer.innerHTML = '';
 
-        filtered.forEach(v => {
+        // 1. Kullanıcı/Profil Araması
+        const matchedUsers = users.filter(u => u.username.toLowerCase().includes(query));
+
+        if (matchedUsers.length > 0 && query !== '') {
+            let userSectionHTML = `<div class="search-section-title">👥 AGALAR / KULLANICILAR</div><div class="user-search-list">`;
+            matchedUsers.forEach(u => {
+                const avatarStyle = u.avatar ? `background-image: url(${u.avatar});` : '';
+                const initial = u.avatar ? '' : u.username.charAt(0).toUpperCase();
+
+                userSectionHTML += `
+                    <div class="user-search-card" onclick="openUserProfileCard('${u.username}')">
+                        <div class="user-search-info">
+                            <div class="avatar" style="${avatarStyle}">${initial}</div>
+                            <div>
+                                <strong>@${u.username}</strong>
+                                <div>${getBadgesHTML(u)}</div>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right" style="color:#666;"></i>
+                    </div>
+                `;
+            });
+            userSectionHTML += `</div>`;
+            userContainer.innerHTML = userSectionHTML;
+        }
+
+        // 2. Video Araması
+        const filteredVideos = videos.filter(v => v.desc.toLowerCase().includes(query) || v.user.toLowerCase().includes(query));
+
+        filteredVideos.forEach(v => {
             const div = document.createElement('div');
             div.className = 'search-card';
             div.onclick = () => switchPage('pageHome', document.getElementById('navHomeBtn'));
@@ -782,7 +955,7 @@
                     <div>${v.desc}</div>
                 </div>
             `;
-            container.appendChild(div);
+            videoContainer.appendChild(div);
         });
     }
 
@@ -805,6 +978,7 @@
             `;
         } else {
             const stats = getUserStats(currentUser);
+            const friendsList = getUserFriends(currentUser);
             const wCount = (stats.watched || []).length;
             const lCount = (stats.liked || []).length;
             const cCount = (stats.commented || []).length;
@@ -844,7 +1018,10 @@
                     <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatar(this)">
                 </label>
                 <h2>@${currentUser.username}</h2>
-                <div style="margin: 10px 0; display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                <div class="friends-counter-badge" onclick="openFriendsList('${currentUser.username}')">
+                    👥 ${friendsList.length} Arkadaş
+                </div>
+                <div style="margin: 6px 0; display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
                     ${getBadgesHTML(currentUser)}
                 </div>
 
@@ -894,7 +1071,7 @@
             else return alert("Hatalı şifre!");
         } else {
             let newUser = { 
-                username: u, pass: p, role: "aga", avatar: "", isBanned: false, selectedTag: "🤡 Küçük31ci",
+                username: u, pass: p, role: "aga", avatar: "", isBanned: false, selectedTag: "🤡 Küçük31ci", friends: [],
                 stats: { watched: [], liked: [], commented: [] }
             };
             users.push(newUser);
