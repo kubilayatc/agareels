@@ -522,7 +522,7 @@
 </div>
 
 <script>
-    // Firebase Bağlantısı (databaseURL Eklendi)
+    // Firebase Bağlantısı
     const firebaseConfig = {
         apiKey: "AIzaSyDpc2ON0Gs11VCaW649v49zEkwn_njVh-I",
         authDomain: "agareels-a5264.firebaseapp.com",
@@ -553,16 +553,28 @@
     ];
 
     window.onload = function() {
-        // Firebase Canlı Dinleyicileri
+        // Varsayılan Admin Kullanıcısı Garantisi
+        const defaultAdmin = {
+            username: "kubilayyatc", pass: "5824!", role: "admin", avatar: "", isBanned: false,
+            selectedTag: "👑 Admin Aga", friends: [],
+            stats: { watched: [], liked: [], commented: [] }
+        };
+
+        // Firebase Users Dinleyicisi
         db.ref('users').on('value', snapshot => {
             const data = snapshot.val();
-            users = data ? Object.values(data) : [
-                { 
-                    username: "kubilayyatc", pass: "5824!", role: "admin", avatar: "", isBanned: false,
-                    selectedTag: "👑 Admin Aga", friends: [],
-                    stats: { watched: [1,2,3,4,5], liked: [1,2,3,4,5], commented: [1,2,3,4,5] } 
+            if (!data) {
+                // Eğer veritabanı tamamen boşsa admini otomatik ekle
+                db.ref('users/kubilayyatc').set(defaultAdmin);
+                users = [defaultAdmin];
+            } else {
+                users = Object.values(data);
+                // Admin her zaman listede olsun
+                if (!users.some(u => u.username.toLowerCase() === 'kubilayyatc')) {
+                    db.ref('users/kubilayyatc').set(defaultAdmin);
                 }
-            ];
+            }
+
             if (currentUser) {
                 let updatedSelf = users.find(u => u.username.toLowerCase() === currentUser.username.toLowerCase());
                 if (updatedSelf) {
@@ -575,6 +587,7 @@
             renderFeed();
         });
 
+        // Firebase Videos Dinleyicisi
         db.ref('videos').on('value', snapshot => {
             const data = snapshot.val();
             videos = data ? Object.values(data) : [];
