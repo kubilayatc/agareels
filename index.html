@@ -346,6 +346,7 @@
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.85rem; color: #aaa; }
         .form-input, .form-select { width: 100%; padding: 10px; background: #2c2c2e; border: 1px solid #444; border-radius: 8px; color: white; outline: none; }
         .btn-primary { width: 100%; padding: 12px; background: #ff2851; border: none; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .btn-secondary { width: 100%; padding: 12px; background: #2c2c2e; border: 1px solid #444; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 8px; }
 
         .modal {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -1038,8 +1039,8 @@
         
         if (!currentUser) {
             container.innerHTML = `
-                <h3>Giriş Yap veya Kaydol</h3>
-                <p style="color:#888; margin-bottom:20px; font-size:0.85rem;">AgaReels klanına katılmak ve unvan kazanmak için giriş yap!</p>
+                <h3 style="margin-bottom:5px;">AgaReels'e Hoş Geldin 🚀</h3>
+                <p style="color:#888; margin-bottom:20px; font-size:0.85rem;">Devam etmek için giriş yap veya yeni hesap oluştur.</p>
                 <div class="form-group">
                     <label>Kullanıcı Adı</label>
                     <input type="text" id="authUsername" class="form-input" placeholder="Kullanıcı adın">
@@ -1048,7 +1049,8 @@
                     <label>Şifre</label>
                     <input type="password" id="authPassword" class="form-input" placeholder="Şifren">
                 </div>
-                <button class="btn-primary" onclick="handleAuth()">Giriş Yap / Kaydol</button>
+                <button class="btn-primary" onclick="handleLogin()">Giriş Yap</button>
+                <button class="btn-secondary" onclick="handleRegister()">Yeni Hesap Oluştur (Kayıt Ol)</button>
             `;
         } else {
             const stats = getUserStats(currentUser);
@@ -1128,32 +1130,66 @@
         syncUsersToFirebase();
     }
 
-    function handleAuth() {
+    function handleLogin() {
         const u = document.getElementById('authUsername').value.trim();
         const p = document.getElementById('authPassword').value.trim();
 
-        if (!u || !p) return alert("Alanları doldurun!");
+        if (!u || !p) return alert("Kullanıcı adı ve şifreyi doldurun!");
+
+        let existingUser = users.find(x => x.username.toLowerCase() === u.toLowerCase());
+
+        if (!existingUser) {
+            return alert("❌ Bu kullanıcı adı sistemde kayıtlı değil! Lütfen 'Yeni Hesap Oluştur' butonunu kullanın.");
+        }
+
+        if (existingUser.isBanned) {
+            return alert("🚫 Bu hesap BANLANMIŞTIR!");
+        }
+
+        if (existingUser.pass === p) {
+            currentUser = existingUser;
+            localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
+            updateAdminUI();
+            renderProfilePage();
+            renderFeed();
+            alert(`Hoş geldin @${currentUser.username}! 🔥`);
+        } else {
+            alert("❌ Şifre hatalı!");
+        }
+    }
+
+    function handleRegister() {
+        const u = document.getElementById('authUsername').value.trim();
+        const p = document.getElementById('authPassword').value.trim();
+
+        if (!u || !p) return alert("Kullanıcı adı ve şifreyi doldurun!");
 
         let existingUser = users.find(x => x.username.toLowerCase() === u.toLowerCase());
 
         if (existingUser) {
-            if (existingUser.isBanned) return alert("🚫 Bu hesap BANLANMIŞTIR!");
-            if (existingUser.pass === p) currentUser = existingUser;
-            else return alert("Hatalı şifre!");
-        } else {
-            let newUser = { 
-                username: u, pass: p, role: "aga", avatar: "", isBanned: false, selectedTag: "🤡 Küçük31ci", friends: [],
-                stats: { watched: [], liked: [], commented: [] }
-            };
-            users.push(newUser);
-            currentUser = newUser;
-            syncUsersToFirebase();
+            return alert("❌ Bu kullanıcı adı zaten alınmış! Başka bir isim seçin veya 'Giriş Yap' butonunu kullanın.");
         }
+
+        let newUser = { 
+            username: u, 
+            pass: p, 
+            role: "aga", 
+            avatar: "", 
+            isBanned: false, 
+            selectedTag: "🤡 Küçük31ci", 
+            friends: [],
+            stats: { watched: [], liked: [], commented: [] }
+        };
+
+        users.push(newUser);
+        currentUser = newUser;
+        syncUsersToFirebase();
 
         localStorage.setItem('agareels_current_user', JSON.stringify(currentUser));
         updateAdminUI();
         renderProfilePage();
         renderFeed();
+        alert(`Kayıt başarılı! Hoş geldin @${currentUser.username} 🎉`);
     }
 
     function uploadAvatar(input) {
